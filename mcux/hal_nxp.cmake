@@ -46,7 +46,11 @@ include(driver_common)
 
 #Include system_xxx file for MXRT platforms
 #This can be extended to other SoC series if needed
-if (CONFIG_SOC_MIMXRT1166_CM4)
+if (CONFIG_SOC_MIMXRT1165_CM4)
+include(device_system_MIMXRT1165_cm4)
+elseif (CONFIG_SOC_MIMXRT1165_CM7)
+include(device_system_MIMXRT1165_cm7)
+elseif (CONFIG_SOC_MIMXRT1166_CM4)
 include(device_system_MIMXRT1166_cm4)
 elseif (CONFIG_SOC_MIMXRT1166_CM7)
 include(device_system_MIMXRT1166_cm7)
