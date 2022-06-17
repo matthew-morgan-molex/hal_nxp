@@ -37,6 +37,8 @@
 #define FSL_FEATURE_SOC_CAAM_COUNT (1)
 /* @brief CCM availability on the SoC. */
 #define FSL_FEATURE_SOC_CCM_COUNT (1)
+/* @brief CSI availability on the SoC. */
+#define FSL_FEATURE_SOC_CSI_COUNT (1)
 /* @brief CDOG availability on the SoC. */
 #define FSL_FEATURE_SOC_CDOG_COUNT (1)
 /* @brief DAC availability on the SoC. */
@@ -77,6 +79,8 @@
 #define FSL_FEATURE_SOC_IOMUXC_LPSR_COUNT (1)
 /* @brief KPP availability on the SoC. */
 #define FSL_FEATURE_SOC_KPP_COUNT (1)
+/* @brief LCDIF availability on the SoC. */
+#define FSL_FEATURE_SOC_LCDIF_COUNT (1)
 /* @brief LPADC availability on the SoC. */
 #define FSL_FEATURE_SOC_LPADC_COUNT (2)
 /* @brief LPI2C availability on the SoC. */
@@ -99,6 +103,8 @@
 #define FSL_FEATURE_SOC_PIT_COUNT (2)
 /* @brief PWM availability on the SoC. */
 #define FSL_FEATURE_SOC_PWM_COUNT (4)
+/* @brief PXP availability on the SoC. */
+#define FSL_FEATURE_SOC_PXP_COUNT (1)
 /* @brief PUF availability on the SoC. */
 #define FSL_FEATURE_SOC_PUF_COUNT (1)
 /* @brief RDC availability on the SoC. */
@@ -249,6 +255,11 @@
 #define FSL_FEATURE_ACMP_HAS_C1_DMODE_BIT (1)
 /* @brief Has C2 RRE Bit */
 #define FSL_FEATURE_ACMP_HAS_C2_RRE_BIT (0)
+
+/* CSI module features */
+
+/* @brief If CSI registers don't have prefix. */
+#define FSL_FEATURE_CSI_NO_REG_PREFIX (1)
 
 /* DAC12 module features */
 
@@ -441,6 +452,15 @@
 #define FSL_FEATURE_PUF_HAS_IDXBLK_SHIFT (1)
 /* @brief SOC has no reset driver. */
 #define FSL_FEATURE_PUF_HAS_NO_RESET (1)
+
+/* LCDIF module features */
+
+/* @brief LCDIF does not support alpha support. */
+#define FSL_FEATURE_LCDIF_HAS_NO_AS (1)
+/* @brief LCDIF does not support output reset pin to LCD panel. */
+#define FSL_FEATURE_LCDIF_HAS_NO_RESET_PIN (1)
+/* @brief LCDIF supports LUT. */
+#define FSL_FEATURE_LCDIF_HAS_LUT (1)
 
 /* LCDIFV2 module features */
 
@@ -685,6 +705,17 @@
 #define FSL_FEATURE_PWM_SUBMODULE_COUNT (4U)
 /* @brief Number of fault channel in each (e)FlexPWM module. */
 #define FSL_FEATURE_PWM_FAULT_CH_COUNT (1)
+
+/* PXP module features */
+
+/* @brief PXP module has dither engine. */
+#define FSL_FEATURE_PXP_HAS_DITHER (0)
+/* @brief PXP module supports repeat run */
+#define FSL_FEATURE_PXP_HAS_EN_REPEAT (1)
+/* @brief PXP doesn't have CSC */
+#define FSL_FEATURE_PXP_HAS_NO_CSC2 (1)
+/* @brief PXP doesn't have LUT */
+#define FSL_FEATURE_PXP_HAS_NO_LUT (1)
 
 /* RTWDOG module features */
 

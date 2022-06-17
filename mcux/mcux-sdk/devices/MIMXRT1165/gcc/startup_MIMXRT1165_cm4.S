@@ -94,10 +94,10 @@ __isr_vector:
     .long   KPP_IRQHandler                                  /* Keypad nterrupt*/
     .long   Reserved68_IRQHandler                           /* Reserved interrupt*/
     .long   GPR_IRQ_IRQHandler                              /* GPR interrupt*/
-    .long   Reserved70_IRQHandler                           /* Reserved interrupt*/
+    .long   eLCDIF_IRQHandler                               /* eLCDIF interrupt*/
     .long   LCDIFv2_IRQHandler                              /* LCDIFv2 interrupt*/
-    .long   Reserved72_IRQHandler                           /* Reserved interrupt*/
-    .long   Reserved73_IRQHandler                           /* Reserved interrupt*/
+    .long   CSI_IRQHandler                                  /* CSI interrupt*/
+    .long   PXP_IRQHandler                                  /* PXP interrupt*/
     .long   MIPI_CSI_IRQHandler                             /* MIPI_CSI interrupt*/
     .long   MIPI_DSI_IRQHandler                             /* MIPI_DSI interrupt*/
     .long   GPU2D_IRQHandler                                /* GPU2D interrupt*/
@@ -1236,10 +1236,10 @@ XECC_FLEXSPI2_FATAL_INT_IRQHandler:
     def_irq_handler    KPP_IRQHandler
     def_irq_handler    Reserved68_IRQHandler
     def_irq_handler    GPR_IRQ_IRQHandler
-    def_irq_handler    Reserved70_IRQHandler
+    def_irq_handler    eLCDIF_IRQHandler
     def_irq_handler    LCDIFv2_IRQHandler
-    def_irq_handler    Reserved72_IRQHandler
-    def_irq_handler    Reserved73_IRQHandler
+    def_irq_handler    CSI_IRQHandler
+    def_irq_handler    PXP_IRQHandler
     def_irq_handler    MIPI_CSI_IRQHandler
     def_irq_handler    MIPI_DSI_IRQHandler
     def_irq_handler    GPU2D_IRQHandler

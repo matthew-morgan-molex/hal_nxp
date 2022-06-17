@@ -148,11 +148,11 @@ include_driver_ifdef(CONFIG_ADC_MCUX_ETC		adc_etc		driver_adc_etc)
 include_driver_ifdef(CONFIG_MCUX_TEMPSENSOR             tempsensor      driver_tempsensor)
 include_driver_ifdef(CONFIG_MCUX_FLEXIO                 flexio          driver_flexio)
 
-if ((${MCUX_DEVICE} MATCHES "MIMXRT1[0-9][0-9][0-9]") AND (NOT (CONFIG_SOC_MIMXRT1166_CM4 OR CONFIG_SOC_MIMXRT1176_CM4)))
+if ((${MCUX_DEVICE} MATCHES "MIMXRT1[0-9][0-9][0-9]") AND (NOT (CONFIG_SOC_MIMXRT1166_CM4 OR CONFIG_SOC_MIMXRT1176_CM4 OR CONFIG_SOC_MIMXRT1165_CM4)))
   include_driver_ifdef(CONFIG_HAS_MCUX_CACHE		cache/armv7-m7	driver_cache_armv7_m7)
 elseif(${MCUX_DEVICE} MATCHES "MIMXRT(5|6)")
   include_driver_ifdef(CONFIG_HAS_MCUX_CACHE		cache/cache64	driver_cache_cache64)
-elseif((${MCUX_DEVICE} MATCHES "MK(28|66)") OR (${MCUX_DEVICE} MATCHES "MKE(14|16|18)") OR (CONFIG_SOC_MIMXRT1166_CM4) OR (CONFIG_SOC_MIMXRT1176_CM4))
+elseif((${MCUX_DEVICE} MATCHES "MK(28|66)") OR (${MCUX_DEVICE} MATCHES "MKE(14|16|18)") OR (CONFIG_SOC_MIMXRT1166_CM4) OR (CONFIG_SOC_MIMXRT1176_CM4) OR (CONFIG_SOC_MIMXRT1165_CM4))
   include_driver_ifdef(CONFIG_HAS_MCUX_CACHE		cache/lmem	driver_cache_lmem)
 endif()
 

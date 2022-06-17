@@ -36,6 +36,24 @@ if(${MCUX_DEVICE} STREQUAL "MIMXRT1166_cm4")
 
 endif()
 
+if(${MCUX_DEVICE} STREQUAL "MIMXRT1165_cm7")
+    list(APPEND CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_LIST_DIR}/devices/MIMXRT1165
+    )
+
+    include(all_lib_device_MIMXRT1165_cm7)
+
+endif()
+
+if(${MCUX_DEVICE} STREQUAL "MIMXRT1165_cm4")
+    list(APPEND CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_LIST_DIR}/devices/MIMXRT1165
+    )
+
+    include(all_lib_device_MIMXRT1165_cm4)
+
+endif()
+
 if(${MCUX_DEVICE} STREQUAL "LPC5506CPXXXX")
     list(APPEND CMAKE_MODULE_PATH
         ${CMAKE_CURRENT_LIST_DIR}/devices/LPC5506CPXXXX
