@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016, Freescale Semiconductor, Inc.
- * Copyright 2016-2021 NXP
+ * Copyright 2016-2022 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -11,7 +11,14 @@
 
 #if defined(FSL_FEATURE_HAS_L1CACHE) || defined(__DCACHE_PRESENT)
 #include "fsl_cache.h"
-#endif
+
+#if defined(CACHE_MODE_WRITE_THROUGH) && CACHE_MODE_WRITE_THROUGH
+#define CAAM_OUT_INVALIDATE (1u)
+#else
+#warning "DCACHE must be set to write-trough mode to safely invalidate cache!!"
+#endif /* CACHE_MODE_WRITE_THROUGH */
+
+#endif /* defined(FSL_FEATURE_HAS_L1CACHE) || defined(__DCACHE_PRESENT) */
 
 /*******************************************************************************
  * Definitions
@@ -191,6 +198,10 @@ static uint32_t s_jrIndex2              = 0;    /*!< Current index in the input 
 static caam_job_ring_interface_t *s_jr3 = NULL; /*!< Pointer to job ring interface 3. */
 static uint32_t s_jrIndex3              = 0;    /*!< Current index in the input job ring 3. */
 
+AT_NONCACHEABLE_SECTION(static caam_rng_config_t rngConfig);
+AT_NONCACHEABLE_SECTION(static caam_desc_rng_t rngGenSeckey);
+AT_NONCACHEABLE_SECTION(static caam_desc_rng_t rngInstantiate);
+AT_NONCACHEABLE_SECTION(static caam_desc_rng_t descBuf);
 /*******************************************************************************
  * Code
  ******************************************************************************/
@@ -426,21 +437,6 @@ static status_t caam_in_job_ring_add(CAAM_Type *base, caam_job_ring_t jobRing, u
      */
     uint32_t currPriMask = DisableGlobalIRQ();
 
-#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
-    bool DCacheEnableFlag = false;
-    /* Disable D cache. */
-    if (SCB_CCR_DC_Msk == (SCB_CCR_DC_Msk & SCB->CCR))
-    {
-        SCB_DisableDCache();
-        DCacheEnableFlag = true;
-    }
-#endif /* __DCACHE_PRESENT */
-#if defined(FSL_FEATURE_LMEM_HAS_SYSTEMBUS_CACHE) && (FSL_FEATURE_LMEM_HAS_SYSTEMBUS_CACHE > 0U)
-#if defined(FSL_FEATURE_HAS_L1CACHE) && (FSL_FEATURE_HAS_L1CACHE > 0U)
-    L1CACHE_DisableSystemCache();
-#endif /* FSL_FEATURE_LMEM_HAS_SYSTEMBUS_CACHE */
-#endif /* FSL_FEATURE_HAS_L1CACHE */
-
     if (kCAAM_JobRing0 == jobRing)
     {
         s_jr0->inputJobRing[s_jrIndex0] = (ADD_OFFSET((uint32_t)descaddr));
@@ -484,19 +480,6 @@ static status_t caam_in_job_ring_add(CAAM_Type *base, caam_job_ring_t jobRing, u
     }
 
     caam_input_ring_set_jobs_added(base, jobRing, 1);
-
-#if defined(__DCACHE_PRESENT) && (__DCACHE_PRESENT == 1U)
-    if (DCacheEnableFlag)
-    {
-        /* Enable D cache. */
-        SCB_EnableDCache();
-    }
-#endif /* __DCACHE_PRESENT */
-#if defined(FSL_FEATURE_LMEM_HAS_SYSTEMBUS_CACHE) && (FSL_FEATURE_LMEM_HAS_SYSTEMBUS_CACHE > 0U)
-#if defined(FSL_FEATURE_HAS_L1CACHE) && (FSL_FEATURE_HAS_L1CACHE > 0U)
-    L1CACHE_EnableSystemCache();
-#endif /* FSL_FEATURE_LMEM_HAS_SYSTEMBUS_CACHE */
-#endif /* FSL_FEATURE_HAS_L1CACHE */
 
     /* Enable IRQ */
     EnableGlobalIRQ(currPriMask);
@@ -1776,7 +1759,6 @@ status_t CAAM_Init(CAAM_Type *base, const caam_config_t *config)
      * for FIFO STORE command to be able to store Key register as Black key
      * for example during AES XCBC-MAC context switch (need to store derived key K1 to memory)
      */
-    caam_rng_config_t rngConfig;
     (void)CAAM_RNG_GetDefaultConfig(&rngConfig);
 
     /* reset RNG */
@@ -2027,7 +2009,13 @@ status_t CAAM_AES_EncryptEcb(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2065,7 +2053,13 @@ status_t CAAM_AES_DecryptEcb(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2103,7 +2097,13 @@ status_t CAAM_AES_EncryptCbc(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2141,7 +2141,13 @@ status_t CAAM_AES_DecryptCbc(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2192,7 +2198,19 @@ status_t CAAM_AES_CryptCtr(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)output, size);
+    DCACHE_InvalidateByRange((uint32_t)counter, 16u);
+    DCACHE_InvalidateByRange((uint32_t)szLeft, sizeof(szLeft));
+    if (counterlast != NULL)
+    {
+        DCACHE_InvalidateByRange((uint32_t)counterlast, 16u);
+    }
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2243,7 +2261,15 @@ status_t CAAM_AES_EncryptTagCcm(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+    DCACHE_InvalidateByRange((uint32_t)tag, tagSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2294,7 +2320,13 @@ status_t CAAM_AES_DecryptTagCcm(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2346,7 +2378,18 @@ status_t CAAM_AES_EncryptTagGcm(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+    if (tag != NULL)
+    {
+        DCACHE_InvalidateByRange((uint32_t)tag, tagSize);
+    }
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -2397,7 +2440,14 @@ status_t CAAM_AES_DecryptTagGcm(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*******************************************************************************
@@ -3023,6 +3073,12 @@ status_t CAAM_HASH_Update(caam_hash_ctx_t *ctx, const uint8_t *input, size_t inp
         return status;
     }
 
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)&ctxInternal->word[0u], (uint32_t)kCAAM_HashCtxNumWords * sizeof(uint32_t));
+#endif /* CAAM_OUT_INVALIDATE */
+
     /* after job is complete, copy numRemain bytes at the end of the input[] to the context */
     (void)caam_memcpy((&ctxInternal->blk.b[0]), input + inputSize - numRemain, numRemain);
     ctxInternal->blksz = numRemain;
@@ -3138,6 +3194,13 @@ status_t CAAM_HASH_Finish(caam_hash_ctx_t *ctx, uint8_t *output, size_t *outputS
 
     /* blocking wait */
     status = CAAM_Wait(ctxInternal->base, ctxInternal->handle, descBuf, kCAAM_Blocking);
+
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)output, 32u);
+#endif /* CAAM_OUT_INVALIDATE */
+
     (void)memset(ctx, 0, sizeof(caam_hash_ctx_t));
     return status;
 }
@@ -3244,6 +3307,11 @@ status_t CAAM_HASH(CAAM_Type *base,
     }
 
     status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)output, *outputSize);
+#endif /* CAAM_OUT_INVALIDATE */
     return status;
 }
 
@@ -3357,7 +3425,6 @@ status_t CAAM_RNG_Init(CAAM_Type *base,
     status_t status;
 
     /* create job descriptor */
-    caam_desc_rng_t rngInstantiate = {0};
     rngInstantiate[0]              = 0xB0800006u;
     rngInstantiate[1]              = 0x12200020u; /* LOAD 32 bytes of  to Class 1 Context Register. Offset 0 bytes. */
     rngInstantiate[2]              = (uint32_t)ADD_OFFSET((uint32_t)config->personalString);
@@ -3453,7 +3520,6 @@ status_t CAAM_RNG_GenerateSecureKey(CAAM_Type *base, caam_handle_t *handle, caam
     status_t status;
 
     /* create job descriptor */
-    caam_desc_rng_t rngGenSeckey = {0};
     rngGenSeckey[0]              = 0xB0800004u; /* HEADER */
     rngGenSeckey[1]              = 0x12200020u; /* LOAD 32 bytes of  to Class 1 Context Register. Offset 0 bytes. */
     rngGenSeckey[2]              = ADD_OFFSET((uint32_t)additionalEntropy);
@@ -3554,13 +3620,12 @@ status_t CAAM_RNG_Reseed(CAAM_Type *base,
 status_t CAAM_RNG_GetRandomData(CAAM_Type *base,
                                 caam_handle_t *handle,
                                 caam_rng_state_handle_t stateHandle,
-                                void *data,
+                                uint8_t *data,
                                 size_t dataSize,
                                 caam_rng_random_type_t dataType,
                                 caam_rng_generic256_t additionalEntropy)
 {
     status_t status;
-    caam_desc_rng_t descBuf;
 
     do
     {
@@ -3574,6 +3639,11 @@ status_t CAAM_RNG_GetRandomData(CAAM_Type *base,
     }
 
     status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)data, dataSize);
+#endif /* CAAM_OUT_INVALIDATE */
     return status;
 }
 
@@ -3707,7 +3777,13 @@ status_t CAAM_DES_EncryptEcb(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -3786,7 +3862,13 @@ status_t CAAM_DES_DecryptEcb(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -3867,7 +3949,13 @@ status_t CAAM_DES_EncryptCbc(CAAM_Type *base,
         status = CAAM_DES_EncryptCbcNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -3952,7 +4040,13 @@ status_t CAAM_DES_DecryptCbc(CAAM_Type *base,
         status = CAAM_DES_DecryptCbcNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4036,7 +4130,13 @@ status_t CAAM_DES_EncryptCfb(CAAM_Type *base,
         status = CAAM_DES_EncryptCfbNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4119,7 +4219,13 @@ status_t CAAM_DES_DecryptCfb(CAAM_Type *base,
         status = CAAM_DES_DecryptCfbNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4203,7 +4309,13 @@ status_t CAAM_DES_EncryptOfb(CAAM_Type *base,
         status = CAAM_DES_EncryptOfbNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4288,7 +4400,13 @@ status_t CAAM_DES_DecryptOfb(CAAM_Type *base,
         status = CAAM_DES_DecryptOfbNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4372,7 +4490,13 @@ status_t CAAM_DES2_EncryptEcb(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4456,7 +4580,13 @@ status_t CAAM_DES2_DecryptEcb(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4543,7 +4673,13 @@ status_t CAAM_DES2_EncryptCbc(CAAM_Type *base,
         status = CAAM_DES2_EncryptCbcNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key1, key2);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4634,7 +4770,13 @@ status_t CAAM_DES2_DecryptCbc(CAAM_Type *base,
         status = CAAM_DES2_DecryptCbcNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key1, key2);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4723,7 +4865,13 @@ status_t CAAM_DES2_EncryptCfb(CAAM_Type *base,
         status = CAAM_DES2_EncryptCfbNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key1, key2);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4812,7 +4960,13 @@ status_t CAAM_DES2_DecryptCfb(CAAM_Type *base,
         status = CAAM_DES2_DecryptCfbNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key1, key2);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4901,7 +5055,13 @@ status_t CAAM_DES2_EncryptOfb(CAAM_Type *base,
         status = CAAM_DES2_EncryptOfbNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key1, key2);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -4992,7 +5152,13 @@ status_t CAAM_DES2_DecryptOfb(CAAM_Type *base,
         status = CAAM_DES2_DecryptOfbNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key1, key2);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5081,7 +5247,13 @@ status_t CAAM_DES3_EncryptEcb(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5170,7 +5342,13 @@ status_t CAAM_DES3_DecryptEcb(CAAM_Type *base,
     {
         return status;
     }
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5263,7 +5441,13 @@ status_t CAAM_DES3_EncryptCbc(CAAM_Type *base,
             CAAM_DES3_EncryptCbcNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key1, key2, key3);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5359,7 +5543,13 @@ status_t CAAM_DES3_DecryptCbc(CAAM_Type *base,
             CAAM_DES3_DecryptCbcNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key1, key2, key3);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5452,7 +5642,13 @@ status_t CAAM_DES3_EncryptCfb(CAAM_Type *base,
             CAAM_DES3_EncryptCfbNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key1, key2, key3);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5546,7 +5742,13 @@ status_t CAAM_DES3_DecryptCfb(CAAM_Type *base,
             CAAM_DES3_DecryptCfbNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key1, key2, key3);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5639,7 +5841,13 @@ status_t CAAM_DES3_EncryptOfb(CAAM_Type *base,
             CAAM_DES3_EncryptOfbNonBlocking(base, handle, descBuf, plaintext, ciphertext, size, iv, key1, key2, key3);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)ciphertext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -5735,7 +5943,13 @@ status_t CAAM_DES3_DecryptOfb(CAAM_Type *base,
             CAAM_DES3_DecryptOfbNonBlocking(base, handle, descBuf, ciphertext, plaintext, size, iv, key1, key2, key3);
     } while (status == kStatus_CAAM_Again);
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)plaintext, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!
@@ -6413,7 +6627,13 @@ status_t CAAM_PKHA_ModAdd(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModSub1NonBlocking(CAAM_Type *base,
@@ -6502,7 +6722,13 @@ status_t CAAM_PKHA_ModSub1(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModSub2NonBlocking(CAAM_Type *base,
@@ -6581,7 +6807,13 @@ status_t CAAM_PKHA_ModSub2(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModMulNonBlocking(CAAM_Type *base,
@@ -6697,7 +6929,13 @@ status_t CAAM_PKHA_ModMul(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModR2NonBlocking(CAAM_Type *base,
@@ -6765,7 +7003,13 @@ status_t CAAM_PKHA_ModR2(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModExpNonBlocking(CAAM_Type *base,
@@ -6868,7 +7112,13 @@ status_t CAAM_PKHA_ModExp(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModRedNonBlocking(CAAM_Type *base,
@@ -6944,7 +7194,13 @@ status_t CAAM_PKHA_ModRed(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModInvNonBlocking(CAAM_Type *base,
@@ -7020,7 +7276,13 @@ status_t CAAM_PKHA_ModInv(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ModGcdNonBlocking(CAAM_Type *base,
@@ -7096,7 +7358,13 @@ status_t CAAM_PKHA_ModGcd(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result, *resultSize);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_PrimalityTestNonBlocking(CAAM_Type *base,
@@ -7277,7 +7545,14 @@ status_t CAAM_PKHA_ECC_PointAdd(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result->X, size);
+    DCACHE_InvalidateByRange((uint32_t)result->Y, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ECC_PointDoubleNonBlocking(CAAM_Type *base,
@@ -7354,7 +7629,14 @@ status_t CAAM_PKHA_ECC_PointDouble(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result->X, size);
+    DCACHE_InvalidateByRange((uint32_t)result->Y, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 status_t CAAM_PKHA_ECC_PointMulNonBlocking(CAAM_Type *base,
@@ -7450,7 +7732,14 @@ status_t CAAM_PKHA_ECC_PointMul(CAAM_Type *base,
         return status;
     }
 
-    return CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+    status = CAAM_Wait(base, handle, descBuf, kCAAM_Blocking);
+#if defined(CAAM_OUT_INVALIDATE) && (CAAM_OUT_INVALIDATE > 0u)
+    /* NOTE: DCACHE must be set to write-trough mode to safely invalidate cache!! */
+    /* Invalidate unaligned data can cause memory corruption in write-back mode   */
+    DCACHE_InvalidateByRange((uint32_t)result->X, size);
+    DCACHE_InvalidateByRange((uint32_t)result->Y, size);
+#endif /* CAAM_OUT_INVALIDATE */
+    return status;
 }
 
 /*!

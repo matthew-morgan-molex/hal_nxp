@@ -75,7 +75,7 @@ static status_t WM8960_SetInternalPllConfig(
     }
 
     pllR = (uint32_t)(((uint64_t)pllF2 * sysclkDiv * 1000U) / (inputMclk / 1000U));
-    pllK = (uint32_t)(((uint64_t)(1UL << 24U) * (pllR - pllN * 1000U * 1000U)) / 1000U / 1000U);
+    pllK = (uint32_t)(((1UL << 24U) * ((uint64_t)pllR - (uint64_t)pllN * 1000U * 1000U)) / 1000U / 1000U);
     if (pllK != 0U)
     {
         fracMode = 1U;
@@ -262,6 +262,11 @@ status_t WM8960_Init(wm8960_handle_t *handle, const wm8960_config_t *config)
 status_t WM8960_Deinit(wm8960_handle_t *handle)
 {
     status_t ret = kStatus_Success;
+
+    /* Reinit I2C in case it has been stopped by concurrent codec driver */
+    if (CODEC_I2C_Init(handle->i2cHandle, handle->config->i2cConfig.codecI2CInstance, WM8960_I2C_BAUDRATE,
+                handle->config->i2cConfig.codecI2CSourceClock) != (status_t)kStatus_HAL_I2cSuccess)
+        return kStatus_Fail;
 
     WM8960_CHECK_RET(WM8960_SetModule(handle, kWM8960_ModuleADC, false), ret);
     WM8960_CHECK_RET(WM8960_SetModule(handle, kWM8960_ModuleDAC, false), ret);

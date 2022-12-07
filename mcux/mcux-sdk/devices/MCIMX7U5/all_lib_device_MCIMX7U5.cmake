@@ -50,6 +50,7 @@ list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_LIST_DIR}/../../drivers/wdog32
     ${CMAKE_CURRENT_LIST_DIR}/../../drivers/xrdc
     ${CMAKE_CURRENT_LIST_DIR}/../../middleware/issdk
+    ${CMAKE_CURRENT_LIST_DIR}/../../../middleware/mbedtls
     ${CMAKE_CURRENT_LIST_DIR}/../../middleware/mmcau
     ${CMAKE_CURRENT_LIST_DIR}/../../../middleware/multicore
     ${CMAKE_CURRENT_LIST_DIR}/../../../rtos/freertos/freertos_kernel
@@ -83,11 +84,11 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_lpspi_edma)
 #    include(driver_flexio_uart_edma)
 #    include(driver_codec)
-#    include(utilities_misc_utilities)
 #    include(driver_wdog32)
 #    include(component_serial_manager)
 #    include(component_serial_manager_uart)
 #    include(driver_lpspi_freertos)
+#    include(middleware_mbedtls_port_ksdk)
 #    include(driver_llwu)
 #    include(middleware_freertos-kernel_MCIMX7U5)
 #    include(component_lpuart_adapter)
@@ -110,6 +111,7 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_common)
 #    include(component_lpi2c_adapter)
 #    include(CMSIS_Include_core_cm)
+#    include(utilities_misc_utilities_MCIMX7U5)
 #    include(middleware_freertos-kernel_heap_4)
 #    include(driver_qspi)
 #    include(driver_ltc)
@@ -119,7 +121,7 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_lpspi)
 #    include(driver_gpio)
 #    include(middleware_issdk_sensor_allregdefs)
-#    include(driver_flexio_i2c_master)
+#    include(middleware_mbedtls_kinetis5)
 #    include(middleware_multicore_erpc_eRPC_server)
 #    include(CMSIS_Driver_Include_USART)
 #    include(CMSIS_Driver_Include_SPI)
@@ -133,6 +135,7 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_crc)
 #    include(component_wm8960_adapter)
 #    include(driver_lptmr)
+#    include(driver_flexio_i2c_master)
 #    include(middleware_issdk_algorithms_pedometer_lib_cm4)
 #    include(middleware_multicore_erpc_eRPC_port_freertos)
 #    include(driver_flexio_spi_edma)
@@ -140,8 +143,8 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(middleware_multicore_rpmsg_lite_MCIMX7U5)
 #    include(driver_sai_edma)
 #    include(component_lists)
-#    include(middleware_issdk_algorithms_pedometer_common)
 #    include(driver_tpm)
+#    include(middleware_issdk_algorithms_pedometer_common)
 #    include(driver_acmp)
 #    include(driver_lpit)
 #    include(driver_fxos8700cq)
@@ -155,5 +158,6 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_lpi2c)
 #    include(driver_trng)
 #    include(driver_sai)
+#    include(middleware_mbedtls_MCIMX7U5)
 #    include(driver_mu)
 #    include(driver_ltc_edma)

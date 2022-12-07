@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015 - 2016, Freescale Semiconductor, Inc.
- * Copyright 2016-2021 NXP
+ * Copyright 2016-2022 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -24,7 +24,7 @@
 /*! @name Driver version */
 /*@{*/
 /*! @brief Defines the driver version. */
-#define FSL_ENET_DRIVER_VERSION (MAKE_VERSION(2, 5, 0))
+#define FSL_ENET_DRIVER_VERSION (MAKE_VERSION(2, 5, 3))
 /*@}*/
 
 /*! @name ENET DESCRIPTOR QUEUE */
@@ -252,7 +252,7 @@ typedef enum _enet_special_control_flag
 } enet_special_control_flag_t;
 
 /*! @brief List of interrupts supported by the peripheral. This
- * enumeration uses one-bot encoding to allow a logical OR of multiple
+ * enumeration uses one-bit encoding to allow a logical OR of multiple
  * members. Members usually map to interrupt enable bits in one or more
  * peripheral registers.
  */
@@ -386,7 +386,7 @@ typedef struct _enet_rx_bd_struct
 {
     uint16_t length;  /*!< Buffer descriptor data length. */
     uint16_t control; /*!< Buffer descriptor control and status. */
-    uint8_t *buffer;  /*!< Data buffer pointer. */
+    uint32_t buffer;  /*!< Data buffer pointer. */
 #ifdef ENET_ENHANCEDBUFFERDESCRIPTOR_MODE
     uint16_t controlExtend0;  /*!< Extend buffer descriptor control0. */
     uint16_t controlExtend1;  /*!< Extend buffer descriptor control1. */
@@ -408,7 +408,7 @@ typedef struct _enet_tx_bd_struct
 {
     uint16_t length;  /*!< Buffer descriptor data length. */
     uint16_t control; /*!< Buffer descriptor control and status. */
-    uint8_t *buffer;  /*!< Data buffer pointer. */
+    uint32_t buffer;  /*!< Data buffer pointer. */
 #ifdef ENET_ENHANCEDBUFFERDESCRIPTOR_MODE
     uint16_t controlExtend0; /*!< Extend buffer descriptor control0. */
     uint16_t controlExtend1; /*!< Extend buffer descriptor control1. */
@@ -776,6 +776,9 @@ typedef void (*enet_isr_t)(ENET_Type *base, enet_handle_t *handle);
 /*! @brief Pointers to enet clocks for each instance. */
 #if !(defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL)
 extern const clock_ip_name_t s_enetClock[];
+#if defined(FSL_FEATURE_ENET_HAS_EXTRA_CLOCK_GATE) && FSL_FEATURE_ENET_HAS_EXTRA_CLOCK_GATE
+extern const clock_ip_name_t s_enetExtraClock[];
+#endif
 #endif /* FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL */
 
 /*******************************************************************************

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016, Freescale Semiconductor, Inc.
- * Copyright 2016-2021 NXP
+ * Copyright 2016-2022 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -827,11 +827,11 @@ void SAI_RxEnable(I2S_Type *base, bool enable)
  * This function will also clear all the error flags such as FIFO error, sync error etc.
  *
  * param base SAI base pointer
- * param type Reset type, FIFO reset or software reset
+ * param resetType Reset type, FIFO reset or software reset
  */
-void SAI_TxSoftwareReset(I2S_Type *base, sai_reset_type_t type)
+void SAI_TxSoftwareReset(I2S_Type *base, sai_reset_type_t resetType)
 {
-    base->TCSR |= (uint32_t)type;
+    base->TCSR |= (uint32_t)resetType;
 
     /* Clear the software reset */
     base->TCSR &= ~I2S_TCSR_SR_MASK;
@@ -846,11 +846,11 @@ void SAI_TxSoftwareReset(I2S_Type *base, sai_reset_type_t type)
  * This function will also clear all the error flags such as FIFO error, sync error etc.
  *
  * param base SAI base pointer
- * param type Reset type, FIFO reset or software reset
+ * param resetType Reset type, FIFO reset or software reset
  */
-void SAI_RxSoftwareReset(I2S_Type *base, sai_reset_type_t type)
+void SAI_RxSoftwareReset(I2S_Type *base, sai_reset_type_t resetType)
 {
-    base->RCSR |= (uint32_t)type;
+    base->RCSR |= (uint32_t)resetType;
 
     /* Clear the software reset */
     base->RCSR &= ~I2S_RCSR_SR_MASK;

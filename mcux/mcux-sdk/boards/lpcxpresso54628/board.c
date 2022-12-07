@@ -34,7 +34,7 @@
 #define SDRAM_RRD_NS           (12u)
 #define SDRAM_MRD_NCLK         (2u)
 #define SDRAM_RAS_NCLK         (2u)
-#define SDRAM_MODEREG_VALUE    (0x23u)
+#define SDRAM_MODEREG_VALUE    (0x33u)
 #define SDRAM_DEV_MEMORYMAP    (0x09u) /* 128Mbits (8M*16, 4banks, 12 rows, 9 columns)*/
 
 /*******************************************************************************
@@ -194,5 +194,18 @@ status_t BOARD_Codec_I2C_Receive(
     uint8_t deviceAddress, uint32_t subAddress, uint8_t subAddressSize, uint8_t *rxBuff, uint8_t rxBuffSize)
 {
     return BOARD_I2C_Receive(BOARD_CODEC_I2C_BASEADDR, deviceAddress, subAddress, subAddressSize, rxBuff, rxBuffSize);
+}
+
+status_t BOARD_Touch_I2C_Send(
+    uint8_t deviceAddress, uint32_t subAddress, uint8_t subAddressSize, const uint8_t *txBuff, uint8_t txBuffSize)
+{
+    return BOARD_I2C_Send(BOARD_TOUCH_I2C_BASEADDR, deviceAddress, subAddress, subAddressSize, (uint8_t *)txBuff,
+                          txBuffSize);
+}
+
+status_t BOARD_Touch_I2C_Receive(
+    uint8_t deviceAddress, uint32_t subAddress, uint8_t subAddressSize, uint8_t *rxBuff, uint8_t rxBuffSize)
+{
+    return BOARD_I2C_Receive(BOARD_TOUCH_I2C_BASEADDR, deviceAddress, subAddress, subAddressSize, rxBuff, rxBuffSize);
 }
 #endif /* SDK_I2C_BASED_COMPONENT_USED */

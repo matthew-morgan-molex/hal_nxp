@@ -6,7 +6,7 @@
  ******************************************************************************/
 /*
  * Copyright (c) 2021 Arm Limited. All rights reserved.
- * Copyright 2021 NXP
+ * Copyright 2021-2022 NXP
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -42,6 +42,9 @@
 #ifndef   __STATIC_FORCEINLINE
   #define __STATIC_FORCEINLINE                   __attribute__((always_inline)) static inline
 #endif
+#ifndef   __WEAK
+  #define __WEAK                                 __attribute__((weak))
+#endif
 
 #ifndef __STRINGIFY
   #define __STRINGIFY(x)                         #x
@@ -55,6 +58,11 @@
 #ifndef __MRS
 #define __MRS(sysreg, pVal) \
   __asm volatile ("mrs  %0, "__STRINGIFY(sysreg)"\n" : "=r"((*pVal)))
+#endif
+
+#ifndef __WFI
+#define __WFI() \
+  __asm volatile ("wfi")
 #endif
 
 
@@ -107,6 +115,15 @@ __STATIC_FORCEINLINE void __disable_irq(void)
   @{
 */
 
+/**
+  \brief   Hypervisor call with 2 arguments
+  \details Makes an hypervisor call with two arguments stored in x0 and x1.
+ */
+#define HVC_2(imm, x0, x1) __asm volatile (                     \
+				"mov x0, %0               \n\t" \
+				"mov x1, %1               \n\t" \
+				"hvc #" __STRINGIFY(imm) "\n\t" \
+				 : : "r" (x0), "r" (x1) : "x0", "x1", "memory")
 
 /**
   \brief   Multiprocessor Affinity
@@ -158,6 +175,28 @@ __STATIC_FORCEINLINE void __DMB(void)
 }
 #endif
 
+/**
+  \brief   Reverse byte order (32 bit)
+  \details Reverses the byte order in unsigned integer value. For example, 0x12345678 becomes 0x78563412.
+  \param [in]    value  Value to reverse
+  \return               Reversed value
+ */
+__STATIC_FORCEINLINE uint32_t __REV(uint32_t value)
+{
+  return __builtin_bswap32(value);
+}
+
+
+/**
+  \brief   Reverse byte order (16 bit)
+  \details Reverses the byte order within each halfword of a word. For example, 0x12345678 becomes 0x34127856.
+  \param [in]    value  Value to reverse
+  \return               Reversed value
+ */
+__STATIC_FORCEINLINE uint32_t __REV16(uint32_t value)
+{
+  return __builtin_bswap16(value);
+}
 
 /**
   \brief   Breakpoint
@@ -178,6 +217,49 @@ __STATIC_FORCEINLINE void __NOP(void)
   __ASM volatile ("nop");
 }
 
+/**
+  \brief   Count leading zeros
+  \details Counts the number of leading zeros of a data value.
+  \param [in]  value  Value to count the leading zeros
+  \return             number of leading zeros in value
+ */
+__STATIC_FORCEINLINE uint8_t __CLZ(uint32_t value)
+{
+  /* Even though __builtin_clz produces a CLZ instruction on ARM, formally
+     __builtin_clz(0) is undefined behaviour, so handle this case specially.
+     This guarantees ARM-compatible results if happening to compile on a non-ARM
+     target, and ensures the compiler doesn't decide to activate any
+     optimisations using the logic "value was passed to __builtin_clz, so it
+     is non-zero".
+     ARM GCC 7.3 and possibly earlier will optimise this test away, leaving a
+     single CLZ instruction.
+   */
+  if (value == 0U)
+  {
+    return 32U;
+  }
+  return __builtin_clz(value);
+}
+
+/**
+  \brief   likely/unlikely() branch prediction
+  \details Gives hints to the compiler to favor either side of a jump instruction
+  \param [in]  expr   Boolean expression under evaluation
+  \return             The same boolean value
+ */
+#ifndef unlikely
+__STATIC_FORCEINLINE long unlikely(long expr)
+{
+  return __builtin_expect(expr, 0L);
+}
+#endif
+
+#ifndef likely
+__STATIC_FORCEINLINE long likely(long expr)
+{
+  return __builtin_expect(expr, 1L);
+}
+#endif
 
 /*@}*/ /* end of group CMSIS_Core_InstructionInterface */
 

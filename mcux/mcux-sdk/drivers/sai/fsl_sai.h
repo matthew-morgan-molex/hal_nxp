@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2015, Freescale Semiconductor, Inc.
- * Copyright 2016-2020 NXP
+ * Copyright 2016-2022 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -22,7 +22,7 @@
 
 /*! @name Driver version */
 /*@{*/
-#define FSL_SAI_DRIVER_VERSION (MAKE_VERSION(2, 3, 4)) /*!< Version 2.3.4 */
+#define FSL_SAI_DRIVER_VERSION (MAKE_VERSION(2, 3, 6)) /*!< Version 2.3.6 */
 /*@}*/
 
 /*! @brief _sai_status_t, SAI return status.*/
@@ -272,9 +272,7 @@ typedef struct _sai_transfer_format
     uint32_t sampleRate_Hz;   /*!< Sample rate of audio data */
     uint32_t bitWidth;        /*!< Data length of audio data, usually 8/16/24/32 bits */
     sai_mono_stereo_t stereo; /*!< Mono or stereo */
-#if defined(FSL_FEATURE_SAI_HAS_MCLKDIV_REGISTER) && (FSL_FEATURE_SAI_HAS_MCLKDIV_REGISTER)
     uint32_t masterClockHz; /*!< Master clock frequency in Hz */
-#endif                      /* FSL_FEATURE_SAI_HAS_MCLKDIV_REGISTER */
 #if defined(FSL_FEATURE_SAI_FIFO_COUNT) && (FSL_FEATURE_SAI_FIFO_COUNT > 1)
     uint8_t watermark; /*!< Watermark value */
 #endif                 /* FSL_FEATURE_SAI_FIFO_COUNT */
@@ -940,9 +938,9 @@ static inline void SAI_RxClearStatusFlags(I2S_Type *base, uint32_t mask)
  * This function will also clear all the error flags such as FIFO error, sync error etc.
  *
  * @param base SAI base pointer
- * @param type Reset type, FIFO reset or software reset
+ * @param tresetType Reset type, FIFO reset or software reset
  */
-void SAI_TxSoftwareReset(I2S_Type *base, sai_reset_type_t type);
+void SAI_TxSoftwareReset(I2S_Type *base, sai_reset_type_t resetType);
 
 /*!
  * @brief Do software reset or FIFO reset .
@@ -953,9 +951,9 @@ void SAI_TxSoftwareReset(I2S_Type *base, sai_reset_type_t type);
  * This function will also clear all the error flags such as FIFO error, sync error etc.
  *
  * @param base SAI base pointer
- * @param type Reset type, FIFO reset or software reset
+ * @param resetType Reset type, FIFO reset or software reset
  */
-void SAI_RxSoftwareReset(I2S_Type *base, sai_reset_type_t type);
+void SAI_RxSoftwareReset(I2S_Type *base, sai_reset_type_t resetType);
 
 /*!
  * @brief Set the Tx channel FIFO enable mask.
@@ -1218,9 +1216,9 @@ static inline void SAI_RxEnableDMA(I2S_Type *base, uint32_t mask, bool enable)
  * @param channel Which data channel used.
  * @return data register address.
  */
-static inline uint32_t SAI_TxGetDataRegisterAddress(I2S_Type *base, uint32_t channel)
+static inline uintptr_t SAI_TxGetDataRegisterAddress(I2S_Type *base, uint32_t channel)
 {
-    return (uint32_t)(&(base->TDR)[channel]);
+    return (uintptr_t)(&(base->TDR)[channel]);
 }
 
 /*!
@@ -1232,9 +1230,9 @@ static inline uint32_t SAI_TxGetDataRegisterAddress(I2S_Type *base, uint32_t cha
  * @param channel Which data channel used.
  * @return data register address.
  */
-static inline uint32_t SAI_RxGetDataRegisterAddress(I2S_Type *base, uint32_t channel)
+static inline uintptr_t SAI_RxGetDataRegisterAddress(I2S_Type *base, uint32_t channel)
 {
-    return (uint32_t)(&(base->RDR)[channel]);
+    return (uintptr_t)(&(base->RDR)[channel]);
 }
 
 /*! @} */
@@ -1574,6 +1572,36 @@ void SAI_TransferTxHandleIRQ(I2S_Type *base, sai_handle_t *handle);
  * @param handle Pointer to the sai_handle_t structure.
  */
 void SAI_TransferRxHandleIRQ(I2S_Type *base, sai_handle_t *handle);
+
+/*!
+ * @brief sends a piece of data in non-blocking way.
+ *
+ * @param base SAI base pointer
+ * @param channel start channel number.
+ * @param channelMask enabled channels mask.
+ * @param endChannel end channel numbers.
+ * @param bitWidth How many bits in a audio word, usually 8/16/24/32 bits.
+ * @param buffer Pointer to the data to be written.
+ * @param size Bytes to be written.
+ */
+void SAI_WriteNonBlocking(I2S_Type *base, uint32_t channel,
+		uint32_t channelMask, uint32_t endChannel, uint8_t bitWidth,
+		uint8_t *buffer, uint32_t size);
+
+/*!
+ * @brief Receive a piece of data in non-blocking way.
+ *
+ * @param base SAI base pointer
+ * @param channel start channel number.
+ * @param channelMask enabled channels mask.
+ * @param endChannel end channel numbers.
+ * @param bitWidth How many bits in a audio word, usually 8/16/24/32 bits.
+ * @param buffer Pointer to the data to be read.
+ * @param size Bytes to be read.
+ */
+void SAI_ReadNonBlocking(I2S_Type *base, uint32_t channel,
+		uint32_t channelMask, uint32_t endChannel, uint8_t bitWidth,
+		uint8_t *buffer, uint32_t size);
 
 /*! @} */
 

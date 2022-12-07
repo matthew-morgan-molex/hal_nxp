@@ -61,6 +61,11 @@ if (${MCUX_DEVICE} MATCHES "MIMXRT1[0-9][0-9][0-9]")
   zephyr_include_directories(mcux-sdk/devices/${MCUX_DEVICE}/xip)
 endif()
 
+#include CMSIS of mcux-sdk for Cortex-A
+if (CONFIG_CPU_CORTEX_A)
+  zephyr_include_directories(mcux-sdk/CMSIS/Core_A/Include)
+endif()
+
 # The mcux uses the cpu name to expose SoC-specific features of a
 # given peripheral. For example, the UART peripheral may be
 # instantiated with/without a hardware FIFO, and the size of that FIFO
@@ -90,11 +95,6 @@ zephyr_library_sources_ifdef(CONFIG_HAS_MCUX_AUDIOMIX mcux-sdk/devices/${MCUX_DE
 add_subdirectory(components)
 
 add_subdirectory_ifdef(
-  CONFIG_USB_DEVICE_DRIVER
-  middleware/usb
-  )
-
-add_subdirectory_ifdef(
   CONFIG_IEEE802154_KW41Z
   middleware/wireless/framework_5.3.3
   )
@@ -109,4 +109,8 @@ zephyr_linker_sources(RWDATA quick_access_data.ld)
 zephyr_linker_sources_ifdef(CONFIG_ARCH_HAS_RAMFUNC_SUPPORT
   RAMFUNC_SECTION
   quick_access_code.ld
+)
+zephyr_linker_sources_ifdef(CONFIG_NOCACHE_MEMORY
+  NOCACHE_SECTION
+  nocache.ld
 )

@@ -178,8 +178,10 @@ typedef struct _irtc_tamper_config
  */
 typedef struct _irtc_config
 {
-    bool wakeupSelect;            /*!< true: Tamper pin 0 is used to wakeup the chip;
-                                       false: Tamper pin 0 is used as the tamper pin */
+#if !defined(FSL_FEATURE_RTC_HAS_NO_CTRL2_WAKEUP_MODE) || (!FSL_FEATURE_RTC_HAS_NO_CTRL2_WAKEUP_MODE)
+    bool wakeupSelect; /*!< true: Tamper pin 0 is used to wakeup the chip;
+                            false: Tamper pin 0 is used as the tamper pin */
+#endif
     bool timerStdMask;            /*!< true: Sampling clocks gated in standby mode;
                                        false: Sampling clocks not gated */
     irtc_alarm_match_t alrmMatch; /*!< Pick one option from enumeration :: irtc_alarm_match_t */

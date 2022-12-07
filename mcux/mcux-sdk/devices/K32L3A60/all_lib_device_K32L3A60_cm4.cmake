@@ -6,6 +6,7 @@ list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_LIST_DIR}/../../cmsis_drivers/lpspi
     ${CMAKE_CURRENT_LIST_DIR}/../../cmsis_drivers/lpuart
     ${CMAKE_CURRENT_LIST_DIR}/../../components/fxos8700cq
+    ${CMAKE_CURRENT_LIST_DIR}/../../components/gpio
     ${CMAKE_CURRENT_LIST_DIR}/../../components/lists
     ${CMAKE_CURRENT_LIST_DIR}/../../components/log
     ${CMAKE_CURRENT_LIST_DIR}/../../components/osa
@@ -46,6 +47,7 @@ list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_CURRENT_LIST_DIR}/../../drivers/xrdc
     ${CMAKE_CURRENT_LIST_DIR}/../../../middleware
     ${CMAKE_CURRENT_LIST_DIR}/../../../middleware/fatfs
+    ${CMAKE_CURRENT_LIST_DIR}/../../../middleware/mbedtls
     ${CMAKE_CURRENT_LIST_DIR}/../../../middleware/multicore
     ${CMAKE_CURRENT_LIST_DIR}/../../../middleware/sdmmc
     ${CMAKE_CURRENT_LIST_DIR}/../../../middleware/usb
@@ -89,12 +91,13 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_lpspi_edma)
 #    include(driver_lpcmp)
 #    include(driver_flexio_uart_edma)
-#    include(utilities_misc_utilities)
 #    include(driver_rtc)
 #    include(driver_wdog32)
+#    include(component_gpio_adapter)
 #    include(component_serial_manager)
 #    include(component_serial_manager_uart)
 #    include(driver_lpspi_freertos)
+#    include(middleware_mbedtls_port_ksdk)
 #    include(component_log_backend_debugconsole)
 #    include(device_system_K32L3A60_cm4)
 #    include(driver_llwu)
@@ -129,6 +132,7 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_port)
 #    include(driver_lpspi)
 #    include(driver_gpio)
+#    include(middleware_mbedtls_kinetis3)
 #    include(component_log)
 #    include(CMSIS_Driver_Include_USART)
 #    include(CMSIS_Driver_Include_SPI)
@@ -147,6 +151,7 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_crc)
 #    include(middleware_sdmmc_host_usdhc)
 #    include(middleware_multicore_erpc_eRPC_port_stdlib)
+#    include(utilities_misc_utilities_K32L3A60_cm4)
 #    include(middleware_multicore_erpc_eRPC_arbitrator)
 #    include(middleware_multicore_erpc_eRPC_port_freertos)
 #    include(driver_dac_1)
@@ -168,6 +173,7 @@ list(APPEND CMAKE_MODULE_PATH
 #    include(driver_xrdc)
 #    include(middleware_usb_device_khci)
 #    include(driver_edma_K32L3A60_cm4)
+#    include(middleware_mbedtls_K32L3A60_cm4)
 #    include(driver_sim)
 #    include(driver_lpi2c)
 #    include(middleware_multicore_erpc_eRPC_rpmsg_lite_transport)

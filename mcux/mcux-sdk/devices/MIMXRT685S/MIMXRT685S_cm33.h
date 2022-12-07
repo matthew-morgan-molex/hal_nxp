@@ -19404,7 +19404,7 @@ typedef struct {
 /*! @} */
 
 /* The count of INPUTMUX_PINT_SEL */
-#define INPUTMUX_PINTSEL_COUNT                  (8U)
+#define INPUTMUX_PINT_SEL_COUNT                  (8U)
 
 /*! @name DSP_INT_SEL - DSP Interrupt Input Multiplexers N */
 /*! @{ */
@@ -28302,9 +28302,9 @@ typedef struct {
 /*! SWRESET - Software reset control
  *  0b0..Not in reset. The RTC is not held in reset. This bit must be cleared prior to configuring or initiating any operation of the RTC.
  *  0b1..In reset. The RTC is held in reset. All register bits within the RTC will be forced to their reset value
- *       except the OFD bit. This bit must be cleared before writing to any register in the RTC - including writes
- *       to set any of the other bits within this register. Do not attempt to write to any bits of this register at
- *       the same time that the reset bit is being cleared.
+ *       except the RTC_OSC_PD bit. This bit must be cleared before writing to any register in the RTC - including
+ *       writes to set any of the other bits within this register. Do not attempt to write to any bits of this
+ *       register at the same time that the reset bit is being cleared.
  */
 #define RTC_CTRL_SWRESET(x)                      (((uint32_t)(((uint32_t)(x)) << RTC_CTRL_SWRESET_SHIFT)) & RTC_CTRL_SWRESET_MASK)
 
