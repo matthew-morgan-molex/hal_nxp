@@ -1673,7 +1673,7 @@ status_t LPSPI_SlaveTransferNonBlocking(LPSPI_Type *base, lpspi_slave_handle_t *
     if (handle->fifoSize > 1U)
     {
         txWatermark         = 1U;
-        handle->rxWatermark = handle->fifoSize - 2U;
+        handle->rxWatermark = handle->fifoSize / 2U;
     }
     else
     {
