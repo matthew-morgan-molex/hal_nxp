@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016, Freescale Semiconductor, Inc.
- * Copyright 2016-2021 NXP
+ * Copyright 2016-2023 NXP
  * All rights reserved.
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -242,6 +242,14 @@ void I2C_MasterInit(I2C_Type *base, const i2c_master_config_t *masterConfig, uin
     (void)FLEXCOMM_Init(base, FLEXCOMM_PERIPH_I2C);
     I2C_MasterEnable(base, masterConfig->enableMaster);
     I2C_MasterSetBaudRate(base, masterConfig->baudRate_Bps, srcClock_Hz);
+    if (masterConfig->enableTimeout)
+	{
+		base->CFG |= I2C_CFG_TIMEOUTEN_MASK;
+	}
+	else
+	{
+		base->CFG &= ~I2C_CFG_TIMEOUTEN_MASK;
+	}
     I2C_MasterSetTimeoutValue(base, masterConfig->timeout_Ms, srcClock_Hz);
 }
 
@@ -402,7 +410,9 @@ void I2C_MasterSetTimeoutValue(I2C_Type *base, uint8_t timeout_Ms, uint32_t srcC
 
     /* The low 4 bits of the timout reister TIMEOUT is hard-wired to be 1, so the the time out value is always 16 times
        the I2C functional clock, we only need to calculate the high bits. */
-    uint32_t timeoutValue = ((uint32_t)timeout_Ms * srcClock_Hz / 16UL / 100UL + 5UL) / 10UL;
+    uint32_t clkDivider = (base->CLKDIV & I2C_CLKDIV_DIVVAL_MASK) >> I2C_CLKDIV_DIVVAL_SHIFT;
+    uint32_t timeoutValue = ((uint32_t)timeout_Ms * (srcClock_Hz / (clkDivider + 1UL)) / 16UL / 100UL + 5UL) / 10UL;
+
     if (timeoutValue > 0x1000UL)
     {
         timeoutValue = 0x1000UL;
@@ -731,6 +741,10 @@ status_t I2C_MasterTransferBlocking(I2C_Type *base, i2c_master_transfer_t *xfer)
 
     assert(xfer != NULL);
 
+    /* Enable the master function and disable the slave function. */
+    I2C_MasterEnable(base, true);
+    I2C_SlaveEnable(base, false);
+
     /* If start signal is requested, send start signal. */
     if (0U == (xfer->flags & (uint32_t)kI2C_TransferNoStartFlag))
     {
@@ -872,6 +886,10 @@ status_t I2C_MasterTransferNonBlocking(I2C_Type *base, i2c_master_handle_t *hand
         return kStatus_I2C_Busy;
     }
 
+    /* Enable the master function and disable the slave function. */
+    I2C_MasterEnable(base, true);
+    I2C_SlaveEnable(base, false);
+
     /* Disable I2C IRQ sources while we configure stuff. */
     I2C_DisableInterrupts(base, (uint32_t)kI2C_MasterIrqFlags);
 
@@ -879,7 +897,7 @@ status_t I2C_MasterTransferNonBlocking(I2C_Type *base, i2c_master_handle_t *hand
     result = I2C_InitTransferStateMachine(base, handle, xfer);
 
     /* Clear error flags. */
-    I2C_ClearStatusFlags(base, I2C_STAT_MSTARBLOSS_MASK | I2C_STAT_MSTSTSTPERR_MASK);
+    I2C_ClearStatusFlags(base, (uint32_t)((uint32_t)kI2C_MasterAllClearFlags | (uint32_t)kI2C_CommonAllClearFlags));
 
     /* Enable I2C internal IRQ sources. */
     I2C_EnableInterrupts(base, (uint32_t)kI2C_MasterIrqFlags);
@@ -1068,7 +1086,12 @@ static status_t I2C_RunTransferStateMachine(I2C_Type *base, i2c_master_handle_t 
        before, the timeout status can be used to avoid the transfer hangs indefinitely. */
     if ((status & (uint32_t)kI2C_EventTimeoutFlag) != 0U)
     {
+#if defined(FSL_FEATURE_I2C_TIMEOUT_RECOVERY) && FSL_FEATURE_I2C_TIMEOUT_RECOVERY
+        I2C_MasterEnable(base, false);
+        I2C_MasterEnable(base, true);
+#endif
         I2C_ClearStatusFlags(base, (uint32_t)kI2C_EventTimeoutFlag);
+
         return kStatus_I2C_EventTimeout;
     }
 
@@ -1076,7 +1099,12 @@ static status_t I2C_RunTransferStateMachine(I2C_Type *base, i2c_master_handle_t 
        specified by TIMEOUT register. */
     if ((status & (uint32_t)kI2C_SclTimeoutFlag) != 0U)
     {
+#if defined(FSL_FEATURE_I2C_TIMEOUT_RECOVERY) && FSL_FEATURE_I2C_TIMEOUT_RECOVERY
+        I2C_MasterEnable(base, false);
+        I2C_MasterEnable(base, true);
+#endif
         I2C_ClearStatusFlags(base, (uint32_t)kI2C_SclTimeoutFlag);
+
         return kStatus_I2C_SclLowTimeout;
     }
 
@@ -1087,9 +1115,8 @@ static status_t I2C_RunTransferStateMachine(I2C_Type *base, i2c_master_handle_t 
 
     /* Get the hardware state of the I2C module */
     master_state = (base->STAT & I2C_STAT_MSTSTATE_MASK) >> I2C_STAT_MSTSTATE_SHIFT;
-    if (((master_state == (uint32_t)I2C_STAT_MSTCODE_NACKADR) ||
-         (master_state == (uint32_t)I2C_STAT_MSTCODE_NACKDAT)) &&
-        (ignoreNak != true))
+    if ((master_state == (uint32_t)I2C_STAT_MSTCODE_NACKADR) ||
+        ((master_state == (uint32_t)I2C_STAT_MSTCODE_NACKDAT) && (ignoreNak != true)))
     {
         /* Slave NACKed last byte, issue stop and return error */
         base->MSTCTL  = I2C_MSTCTL_MSTSTOP_MASK;
@@ -1444,6 +1471,10 @@ static status_t I2C_SlaveTransferNonBlockingInternal(I2C_Type *base,
 
     status_t status;
     status = kStatus_Success;
+
+    /* Enable the slave function and disable the master function. */
+    I2C_MasterEnable(base, false);
+    I2C_SlaveEnable(base, true);
 
     /* Disable I2C IRQ sources while we configure stuff. */
     I2C_DisableInterrupts(base, (uint32_t)kI2C_SlaveIrqFlags);
