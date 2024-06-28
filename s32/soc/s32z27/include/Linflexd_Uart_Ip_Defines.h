@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2023 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -13,6 +13,10 @@
 *   @addtogroup  linflexd_uart_ip Linflexd UART IPL
 *   @{
 */
+
+#ifdef __cplusplus
+extern "C"{
+#endif
 
 /*==================================================================================================
 *                                        INCLUDE FILES
@@ -31,8 +35,8 @@
 #define LINFLEXD_UART_IP_DEFINES_AR_RELEASE_MAJOR_VERSION      4
 #define LINFLEXD_UART_IP_DEFINES_AR_RELEASE_MINOR_VERSION      7
 #define LINFLEXD_UART_IP_DEFINES_AR_RELEASE_REVISION_VERSION   0
-#define LINFLEXD_UART_IP_DEFINES_SW_MAJOR_VERSION              0
-#define LINFLEXD_UART_IP_DEFINES_SW_MINOR_VERSION              9
+#define LINFLEXD_UART_IP_DEFINES_SW_MAJOR_VERSION              1
+#define LINFLEXD_UART_IP_DEFINES_SW_MINOR_VERSION              0
 #define LINFLEXD_UART_IP_DEFINES_SW_PATCH_VERSION              0
 
 /*==================================================================================================
@@ -41,7 +45,8 @@
 #ifndef DISABLE_MCAL_INTERMODULE_ASR_CHECK
     /* Checks against Mcal.h */
     #if ((LINFLEXD_UART_IP_DEFINES_AR_RELEASE_MAJOR_VERSION != MCAL_AR_RELEASE_MAJOR_VERSION) || \
-         (LINFLEXD_UART_IP_DEFINES_AR_RELEASE_MINOR_VERSION != MCAL_AR_RELEASE_MINOR_VERSION))
+         (LINFLEXD_UART_IP_DEFINES_AR_RELEASE_MINOR_VERSION != MCAL_AR_RELEASE_MINOR_VERSION) \
+    )
         #error "AUTOSAR Version Numbers of Linflexd_Uart_Ip_Defines.h and Mcal.h are different"
     #endif
 #endif
@@ -52,6 +57,9 @@
 /*==================================================================================================
  *                                     DEFINES AND MACROS
 ==================================================================================================*/
+/* @Custom baudrate values */
+#define LINFLEXD_UART_IP_CUSTOM_BAUDRATE
+
 /* @brief Development error detection */
 #define LINFLEXD_UART_IP_DEV_ERROR_DETECT       (STD_OFF)
 

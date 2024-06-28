@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2023 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -35,8 +35,8 @@ extern "C"{
 #define SWT_IP_DEVICE_REGISTERS_AR_RELEASE_MAJOR_VERSION     4
 #define SWT_IP_DEVICE_REGISTERS_AR_RELEASE_MINOR_VERSION     7
 #define SWT_IP_DEVICE_REGISTERS_AR_RELEASE_REVISION_VERSION  0
-#define SWT_IP_DEVICE_REGISTERS_SW_MAJOR_VERSION             0
-#define SWT_IP_DEVICE_REGISTERS_SW_MINOR_VERSION             9
+#define SWT_IP_DEVICE_REGISTERS_SW_MAJOR_VERSION             1
+#define SWT_IP_DEVICE_REGISTERS_SW_MINOR_VERSION             0
 #define SWT_IP_DEVICE_REGISTERS_SW_PATCH_VERSION             0
 
 /*==================================================================================================
@@ -75,4 +75,3 @@ extern "C"{
 /** @} */
 
 #endif /*SWT_DEVICE_REGISTERS_H */
-

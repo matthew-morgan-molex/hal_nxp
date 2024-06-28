@@ -7,6 +7,9 @@ if(${CONFIG_SOC} STREQUAL "s32z27")
 elseif(${CONFIG_SOC} MATCHES "s32k3.*")
   set(SOC_BASE ${CONFIG_SOC})
   set(DRIVERS_BASE s32k3)
+elseif(${CONFIG_SOC} MATCHES "s32k1.*")
+  set(SOC_BASE ${CONFIG_SOC})
+  set(DRIVERS_BASE s32k1)
 else()
   message(FATAL_ERROR "SoC ${CONFIG_SOC} not supported")
 endif()
@@ -24,6 +27,9 @@ if(CONFIG_HAS_MCUX)
   #
   # Glue code must be added for each device supported to build with MCUX. This
   # can be found in hal_nxp/s32/mcux/devices:
+  # - s32/mcux/devices/${MCUX_DEVICE}/${MCUX_DEVICE}_device.h
+  #   redefine RTD module's peripheral access layers and its register masks to be
+  #   compatible with MCUX drivers for incompatible peripherals
   # - s32/mcux/devices/${MCUX_DEVICE}/${MCUX_DEVICE}_features.h
   #   define SoC module's features
   # - s32/mcux/devices/${MCUX_DEVICE}/${MCUX_DEVICE}_glue_mcux.h
@@ -41,12 +47,20 @@ if(CONFIG_HAS_MCUX)
   #   required by mcux/mcux-sdk/drivers/common/drivers_common.cmake for non DSP
   #   architectures
 
+  function(include_mcux_driver_ifdef feature_toggle directory module)
+    if(${${feature_toggle}})
+      list(APPEND CMAKE_MODULE_PATH
+          ${CMAKE_CURRENT_LIST_DIR}/../mcux/mcux-sdk/drivers/${directory}
+      )
+      zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/../mcux/mcux-sdk/drivers/${directory})
+      include(${module})
+    endif()
+  endfunction()
+
   set(MCUX_SDK_PROJECT_NAME ${ZEPHYR_CURRENT_LIBRARY})
 
-  # Translate the SoC name and part number into the MCUX device and CPU
-  # name respectively
+  # Translate the SoC name into the MCUX device
   string(TOUPPER ${CONFIG_SOC} MCUX_DEVICE)
-  set(MCUX_CPU CPU_${CONFIG_SOC_PART_NUMBER})
 
   # This is normally done in mcux/hal_nxp.cmake, but we need to point to the
   # path on this directory instead
@@ -56,7 +70,7 @@ if(CONFIG_HAS_MCUX)
   )
 
   # MCUX uses the CPU name to expose SoC-specific features of a given peripheral
-  zephyr_compile_definitions(${MCUX_CPU})
+  zephyr_compile_definitions(CPU_${MCUX_DEVICE})
 
   # Clock control is supported through RTD, so disable it in the MCUX drivers
   zephyr_compile_definitions(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL=1)
@@ -78,5 +92,15 @@ if(CONFIG_HAS_MCUX)
 
   # Entry CMake component for MCUX
   include(${CMAKE_CURRENT_LIST_DIR}/../mcux/hal_nxp.cmake)
+
+  if(${MCUX_DEVICE} MATCHES "S32K1")
+    zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/../mcux/mcux-sdk/drivers/port)
+    include_mcux_driver_ifdef(CONFIG_PINCTRL port driver_port)
+
+    zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/../mcux/mcux-sdk/drivers/sysmpu)
+    include_mcux_driver_ifdef(CONFIG_ARM_MPU sysmpu driver_sysmpu)
+
+    include_mcux_driver_ifdef(CONFIG_HAS_MCUX_CACHE cache/lmem driver_cache_lmem)
+  endif()
 
 endif()

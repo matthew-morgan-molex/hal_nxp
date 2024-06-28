@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2023 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
@@ -9,7 +9,7 @@
 
 /**
 *   @file    Mru_Ip_Cfg.h
-*   @version 0.9.0
+*   @version 1.0.0
 *
 *   @brief   AUTOSAR Platform - Mru configuration header file.
 *   @details This file is the header containing all the necessary information for MRU
@@ -32,58 +32,68 @@ extern "C"
 * 4) user callback header files
 ==================================================================================================*/
 #include <zephyr/devicetree.h>
+
 #include "Mcal.h"
 #include "OsIf.h"
+#include "Mru_Ip_CfgDefines.h"
 #include "S32Z2_SMU_MRU.h"
 #include "S32Z2_RTU_MRU.h"
 #include "S32Z2_CE_MRU.h"
 /*==================================================================================================
 *                              SOURCE FILE VERSION INFORMATION
 ==================================================================================================*/
-#define MRU_IP_VENDOR_ID_CFG                       43
-#define MRU_IP_AR_RELEASE_MAJOR_VERSION_CFG        4
-#define MRU_IP_AR_RELEASE_MINOR_VERSION_CFG        7
-#define MRU_IP_AR_RELEASE_REVISION_VERSION_CFG     0
-#define MRU_IP_SW_MAJOR_VERSION_CFG                0
-#define MRU_IP_SW_MINOR_VERSION_CFG                9
-#define MRU_IP_SW_PATCH_VERSION_CFG                0
+#define CDD_PLATFORM_MRU_IP_VENDOR_ID_CFG                       43
+#define CDD_PLATFORM_MRU_IP_AR_RELEASE_MAJOR_VERSION_CFG        4
+#define CDD_PLATFORM_MRU_IP_AR_RELEASE_MINOR_VERSION_CFG        7
+#define CDD_PLATFORM_MRU_IP_AR_RELEASE_REVISION_VERSION_CFG     0
+#define CDD_PLATFORM_MRU_IP_SW_MAJOR_VERSION_CFG                1
+#define CDD_PLATFORM_MRU_IP_SW_MINOR_VERSION_CFG                0
+#define CDD_PLATFORM_MRU_IP_SW_PATCH_VERSION_CFG                0
 
 /*==================================================================================================
                                       FILE VERSION CHECKS
 ==================================================================================================*/
 #ifndef DISABLE_MCAL_INTERMODULE_ASR_CHECK
     /* Check if current file and Mcal header file are of the same Autosar version */
-    #if ((MRU_IP_AR_RELEASE_MAJOR_VERSION_CFG != MCAL_AR_RELEASE_MAJOR_VERSION) || \
-         (MRU_IP_AR_RELEASE_MINOR_VERSION_CFG != MCAL_AR_RELEASE_MINOR_VERSION))
+    #if ((CDD_PLATFORM_MRU_IP_AR_RELEASE_MAJOR_VERSION_CFG != MCAL_AR_RELEASE_MAJOR_VERSION) || \
+         (CDD_PLATFORM_MRU_IP_AR_RELEASE_MINOR_VERSION_CFG != MCAL_AR_RELEASE_MINOR_VERSION))
     #error "AutoSar Version Numbers of Mru_Ip_Cfg.h and Mcal.h are different"
     #endif
 
     /* Check if the current file and OsIf.h header file are of the same version */
-    #if ((MRU_IP_AR_RELEASE_MAJOR_VERSION_CFG != OSIF_AR_RELEASE_MAJOR_VERSION) || \
-         (MRU_IP_AR_RELEASE_MINOR_VERSION_CFG != OSIF_AR_RELEASE_MINOR_VERSION) \
+    #if ((CDD_PLATFORM_MRU_IP_AR_RELEASE_MAJOR_VERSION_CFG != OSIF_AR_RELEASE_MAJOR_VERSION) || \
+         (CDD_PLATFORM_MRU_IP_AR_RELEASE_MINOR_VERSION_CFG != OSIF_AR_RELEASE_MINOR_VERSION) \
         )
         #error "AutoSar Version Numbers of Mru_Ip_Cfg.h and OsIf.h are different"
     #endif
 #endif
+
+/* Check if Mru_Ip_CfgDefines.h and Mru_Ip_Cfg.h are of the same vendor */
+#if (CDD_PLATFORM_MRU_IP_CFG_DEFINES_VENDOR_ID != CDD_PLATFORM_MRU_IP_VENDOR_ID_CFG)
+    #error "Mru_Ip_CfgDefines.h and Mru_Ip_Cfg.h have different vendor ids"
+#endif
+/* Check if Mru_Ip_CfgDefines.h file and Mru_Ip_Cfg.h file are of the same Autosar version */
+#if ((CDD_PLATFORM_MRU_IP_CFG_DEFINES_AR_RELEASE_MAJOR_VERSION != CDD_PLATFORM_MRU_IP_AR_RELEASE_MAJOR_VERSION_CFG) || \
+     (CDD_PLATFORM_MRU_IP_CFG_DEFINES_AR_RELEASE_MINOR_VERSION != CDD_PLATFORM_MRU_IP_AR_RELEASE_MINOR_VERSION_CFG) || \
+     (CDD_PLATFORM_MRU_IP_CFG_DEFINES_AR_RELEASE_REVISION_VERSION != CDD_PLATFORM_MRU_IP_AR_RELEASE_REVISION_VERSION_CFG))
+#error "AutoSar Version Numbers of Mru_Ip_CfgDefines.h and Mru_Ip_Cfg.h are different"
+#endif
+#if ((CDD_PLATFORM_MRU_IP_CFG_DEFINES_SW_MAJOR_VERSION != CDD_PLATFORM_MRU_IP_SW_MAJOR_VERSION_CFG) || \
+     (CDD_PLATFORM_MRU_IP_CFG_DEFINES_SW_MINOR_VERSION != CDD_PLATFORM_MRU_IP_SW_MINOR_VERSION_CFG) || \
+     (CDD_PLATFORM_MRU_IP_CFG_DEFINES_SW_PATCH_VERSION != CDD_PLATFORM_MRU_IP_SW_PATCH_VERSION_CFG))
+#error "Software Version Numbers of Mru_Ip_CfgDefines.h and Mru_Ip_Cfg.h are different"
+#endif
 /*==================================================================================================
                                             CONSTANTS
 ==================================================================================================*/
- /**
+/**
 * @brief          Enable User Mode Support.
 * @details        When MruEnableUserModeSupport = TRUE,
 *                 the MRU driver can be executed from both supervisor and user mode.
 *
 * @api
 */
-#define MRU_IP_ENABLE_USER_MODE_SUPPORT   (STD_OFF)
-
-#ifndef MCAL_ENABLE_USER_MODE_SUPPORT
- #ifdef MRU_IP_ENABLE_USER_MODE_SUPPORT
-  #if (STD_ON == MRU_IP_ENABLE_USER_MODE_SUPPORT)
-   #error MCAL_ENABLE_USER_MODE_SUPPORT is not enabled. For running  Mru in user mode the MCAL_ENABLE_USER_MODE_SUPPORT needs to be defined
-  #endif /* (STD_ON == MRU_IP_ENABLE_USER_MODE_SUPPORT) */
- #endif /* ifdef MCAL_ENABLE_USER_MODE_SUPPORT */
-#endif /* ifndef MCAL_ENABLE_USER_MODE_SUPPORT*/
+#define MRU_IP_ENABLE_USER_MODE_SUPPORT  (STD_OFF)
 
 /**
 * @brief Switches ON or OFF for the detection and reporting of development errors(API parameter checking) at IP level.
@@ -220,10 +230,9 @@ extern "C"
 */
 #define MRU_IP_INT_GROUP_0  0
 /**
-* @brief ID for interrupt group 0.
+* @brief ID for interrupt group 1.
 */
 #define MRU_IP_INT_GROUP_1  1
-
 /*==================================================================================================
 *                                            ENUMS
 ==================================================================================================*/

@@ -1,15 +1,13 @@
 /*
 ** ###################################################################
 **     Version:             rev. 0.1, 2020-12-29
-**     Build:               b220929
+**     Build:               b230419
 **
 **     Abstract:
 **         Chip specific module features.
 **
 **     Copyright 2016 Freescale Semiconductor, Inc.
-**     Copyright 2016-2022 NXP
-**     All rights reserved.
-**
+**     Copyright 2016-2023 NXP
 **     SPDX-License-Identifier: BSD-3-Clause
 **
 **     http:                 www.nxp.com
@@ -37,8 +35,6 @@
 #define FSL_FEATURE_SOC_CAAM_COUNT (1)
 /* @brief CCM availability on the SoC. */
 #define FSL_FEATURE_SOC_CCM_COUNT (1)
-/* @brief CSI availability on the SoC. */
-#define FSL_FEATURE_SOC_CSI_COUNT (1)
 /* @brief CDOG availability on the SoC. */
 #define FSL_FEATURE_SOC_CDOG_COUNT (1)
 /* @brief DAC12 availability on the SoC. */
@@ -79,8 +75,6 @@
 #define FSL_FEATURE_SOC_IOMUXC_LPSR_COUNT (1)
 /* @brief KPP availability on the SoC. */
 #define FSL_FEATURE_SOC_KPP_COUNT (1)
-/* @brief LCDIF availability on the SoC. */
-#define FSL_FEATURE_SOC_LCDIF_COUNT (1)
 /* @brief LPADC availability on the SoC. */
 #define FSL_FEATURE_SOC_LPADC_COUNT (2)
 /* @brief LPI2C availability on the SoC. */
@@ -105,8 +99,6 @@
 #define FSL_FEATURE_SOC_PIT_COUNT (2)
 /* @brief PWM availability on the SoC. */
 #define FSL_FEATURE_SOC_PWM_COUNT (4)
-/* @brief PXP availability on the SoC. */
-#define FSL_FEATURE_SOC_PXP_COUNT (1)
 /* @brief PUF availability on the SoC. */
 #define FSL_FEATURE_SOC_PUF_COUNT (1)
 /* @brief RDC availability on the SoC. */
@@ -169,6 +161,8 @@
 
 /* FLEXCAN module features */
 
+/* @brief Has more than 64 MBs. */
+#define FSL_FEATURE_FLEXCAN_HAS_MORE_THAN_64_MB (0)
 /* @brief Message buffer size */
 #define FSL_FEATURE_FLEXCAN_HAS_MESSAGE_BUFFER_MAX_NUMBERn(x) (64)
 /* @brief Has doze mode support (register bit field MCR[DOZE]). */
@@ -256,11 +250,6 @@
 /* @brief Has C2 RRE Bit */
 #define FSL_FEATURE_ACMP_HAS_C2_RRE_BIT (0)
 
-/* CSI module features */
-
-/* @brief If CSI registers don't have prefix. */
-#define FSL_FEATURE_CSI_NO_REG_PREFIX (1)
-
 /* DAC12 module features */
 
 /* @brief Has no ITRM register. */
@@ -334,6 +323,8 @@
 #define FSL_FEATURE_ENC_HAS_LASTEDGE (1)
 /* @brief Has register POSDPERBFR, POSDPERH, or POSDPER. */
 #define FSL_FEATURE_ENC_HAS_POSDPER (1)
+/* @brief Has bitfiled FILT[FILT_PRSC]. */
+#define FSL_FEATURE_ENC_HAS_FILT_PRSC (1)
 
 /* ENET module features */
 
@@ -391,6 +382,8 @@
 #define FSL_FEATURE_FLEXIO_HAS_SHIFTER_STATUS (1)
 /* @brief Has Pin Data Input Register (FLEXIO_PIN) */
 #define FSL_FEATURE_FLEXIO_HAS_PIN_STATUS (1)
+/* @brief Has pin input output related registers */
+#define FSL_FEATURE_FLEXIO_HAS_PIN_REGISTER (0)
 /* @brief Has Shifter Buffer N Nibble Byte Swapped Register (FLEXIO_SHIFTBUFNBSn) */
 #define FSL_FEATURE_FLEXIO_HAS_SHFT_BUFFER_NIBBLE_BYTE_SWAP (1)
 /* @brief Has Shifter Buffer N Half Word Swapped Register (FLEXIO_SHIFTBUFHWSn) */
@@ -421,7 +414,9 @@
 /* @brief Has FLEXRAM_MAGIC_ADDR. */
 #define FSL_FEATURE_FLEXRAM_HAS_MAGIC_ADDR (1)
 /* @brief If FLEXRAM has ECC function. */
-#define FSL_FEATURE_FLEXRAM_HAS_ECC (0)
+#define FSL_FEATURE_FLEXRAM_HAS_ECC (1)
+/* @brief If FLEXRAM has ECC Error Injection function. */
+#define FSL_FEATURE_FLEXRAM_HAS_ECC_ERROR_INJECTION (0)
 
 /* FLEXSPI module features */
 
@@ -458,15 +453,6 @@
 #define FSL_FEATURE_PUF_HAS_IDXBLK_SHIFT (1)
 /* @brief SOC has no reset driver. */
 #define FSL_FEATURE_PUF_HAS_NO_RESET (1)
-
-/* LCDIF module features */
-
-/* @brief LCDIF does not support alpha support. */
-#define FSL_FEATURE_LCDIF_HAS_NO_AS (1)
-/* @brief LCDIF does not support output reset pin to LCD panel. */
-#define FSL_FEATURE_LCDIF_HAS_NO_RESET_PIN (1)
-/* @brief LCDIF supports LUT. */
-#define FSL_FEATURE_LCDIF_HAS_LUT (1)
 
 /* LCDIFV2 module features */
 
@@ -606,6 +592,12 @@
 #define FSL_FEATURE_LPUART_HAS_GLOBAL (1)
 /* @brief Has LPUART_PINCFG. */
 #define FSL_FEATURE_LPUART_HAS_PINCFG (1)
+/* @brief Has register MODEM Control. */
+#define FSL_FEATURE_LPUART_HAS_MCR (0)
+/* @brief Has register Half Duplex Control. */
+#define FSL_FEATURE_LPUART_HAS_HDCR (0)
+/* @brief Has register Timeout. */
+#define FSL_FEATURE_LPUART_HAS_TIMEOUT (0)
 
 /* CSI2RX module features */
 
@@ -679,6 +671,8 @@
 #define FSL_FEATURE_PDM_VERY_LOW_QUALITY_CLKDIV_FACTOR (43)
 /* @brief PDM Has No VADEF Bitfield In PDM VAD0_STAT Register */
 #define FSL_FEATURE_PDM_HAS_NO_VADEF (0)
+/* @brief PDM Has no FIR_RDY Bitfield In PDM STAT Register */
+#define FSL_FEATURE_PDM_HAS_NO_FIR_RDY (1)
 
 /* PIT module features */
 
@@ -709,17 +703,8 @@
 #define FSL_FEATURE_PWM_SUBMODULE_COUNT (4U)
 /* @brief Number of fault channel in each (e)FlexPWM module. */
 #define FSL_FEATURE_PWM_FAULT_CH_COUNT (1)
-
-/* PXP module features */
-
-/* @brief PXP module has dither engine. */
-#define FSL_FEATURE_PXP_HAS_DITHER (0)
-/* @brief PXP module supports repeat run */
-#define FSL_FEATURE_PXP_HAS_EN_REPEAT (1)
-/* @brief PXP doesn't have CSC */
-#define FSL_FEATURE_PXP_HAS_NO_CSC2 (1)
-/* @brief PXP doesn't have LUT */
-#define FSL_FEATURE_PXP_HAS_NO_LUT (1)
+/* @brief (e)FlexPWM has no WAITEN Bitfield In CTRL2 Register. */
+#define FSL_FEATURE_PWM_HAS_NO_WAITEN (1)
 
 /* RTWDOG module features */
 
@@ -754,8 +739,6 @@
 #define FSL_FEATURE_SAI_HAS_CLOCKING_MODE (0)
 /* @brief Has register for configuration of the MCLK divide ratio (register bit fields MDR[FRACT], MDR[DIVIDE]). */
 #define FSL_FEATURE_SAI_HAS_MCLKDIV_REGISTER (0)
-/* @brief Interrupt source number */
-#define FSL_FEATURE_SAI_INT_SOURCE_NUM (2)
 /* @brief Has register of MCR. */
 #define FSL_FEATURE_SAI_HAS_MCR (0)
 /* @brief Has bit field MICS of the MCR register. */
@@ -779,20 +762,28 @@
 #define FSL_FEATURE_SEMC_HAS_NOR_LC_TIME (1)
 /* @brief Has RD time in NOR controller (register bit field NORCR2[RD]). */
 #define FSL_FEATURE_SEMC_HAS_NOR_RD_TIME (1)
-/* @brief Has WDH time in SRAM controller (register bit field SRAMCR2[WDH]). */
+/* @brief Has WDH time in SRAM controller (register bit field SRAMCR2[WDH] or SRAMCR6[WDH]). */
 #define FSL_FEATURE_SEMC_HAS_SRAM_WDH_TIME (1)
-/* @brief Has WDS time in SRAM controller (register bit field SRAMCR2[WDS]). */
+/* @brief Has WDS time in SRAM controller (register bit field SRAMCR2[WDS] or SRAMCR6[WDS]). */
 #define FSL_FEATURE_SEMC_HAS_SRAM_WDS_TIME (1)
-/* @brief Has LC time in SRAM controller (register bit field SRAMCR2[LC]). */
+/* @brief Has LC time in SRAM controller (register bit field SRAMCR2[LC] or SRAMCR6[LC]). */
 #define FSL_FEATURE_SEMC_HAS_SRAM_LC_TIME (1)
-/* @brief Has RD time in SRAM controller (register bit field SRAMCR2[RD]). */
+/* @brief Has RD time in SRAM controller (register bit field SRAMCR2[RD] or SRAMCR6[RD]). */
 #define FSL_FEATURE_SEMC_HAS_SRAM_RD_TIME (1)
 /* @brief SRAM count SEMC can support (register BRx). */
 #define FSL_FEATURE_SEMC_SUPPORT_SRAM_COUNT (4)
 /* @brief If SEMC support delay chain control (register DCCR). */
 #define FSL_FEATURE_SEMC_HAS_DELAY_CHAIN_CONTROL (1)
-/* @brief Has read hold time feature (register bit field SRAMCR6[RDH]). */
+/* @brief Has read hold time feature (register bit field SRAMCR2[RDH] or SRAMCR6[RDH]). */
 #define FSL_FEATURE_SEMC_HAS_SRAM_RDH_TIME (1)
+/* @brief Has read hold time feature (register bit field SRAMCR0[SYNCEN] or SRAMCR4[SYNCEN]). */
+#define FSL_FEATURE_SEMC_HAS_SRAM_SYNCEN (1)
+/* @brief Has read hold time feature (register bit field SRAMCR0[WAITEN] or SRAMCR4[WAITEN]). */
+#define FSL_FEATURE_SEMC_HAS_SRAM_WAITEN (1)
+/* @brief Has read hold time feature (register bit field SRAMCR0[WAITSP] or SRAMCR4[WAITSP]). */
+#define FSL_FEATURE_SEMC_HAS_SRAM_WAITSP (1)
+/* @brief Has read hold time feature (register bit field SRAMCR0[ADVH] or SRAMCR4[ADVH]). */
+#define FSL_FEATURE_SEMC_HAS_SRAM_ADVH (1)
 /* @brief Width of SDRAMCR0[PS] bitfields. */
 #define FSL_FEATURE_SEMC_SUPPORT_SDRAM_PS_BITWIDTH (2)
 /* @brief If SEMC has errata 050577. */
@@ -875,6 +866,8 @@
 #define FSL_FEATURE_USDHC_INSTANCE_SUPPORT_1V8_SIGNALn(x) (1)
 /* @brief Has no retuning time counter (HOST_CTRL_CAP[TIME_COUNT_RETURNING]) */
 #define FSL_FEATURE_USDHC_REGISTER_HOST_CTRL_CAP_HAS_NO_RETUNING_TIME_COUNTER (1)
+/* @brief Has no VSELECT bit in VEND_SPEC register */
+#define FSL_FEATURE_USDHC_HAS_NO_VOLTAGE_SELECT (0)
 
 /* XBARA module features */
 
