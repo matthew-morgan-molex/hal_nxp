@@ -1,11 +1,22 @@
 list(APPEND CMAKE_MODULE_PATH
-    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/devices/${MCUX_DEVICE}
-    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/devices/${MCUX_DEVICE}/drivers
-    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/cache/armv7-m7
+    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/devices/${MCUX_DEVICE_PATH}
+    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/devices/${MCUX_DEVICE_PATH}/drivers
     ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/common
+    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/flexcomm
+    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/flexio
     ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/dmamux
-    ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/CMSIS/Core/Include
 )
+
+if(CONFIG_CPU_CORTEX_A)
+    list(APPEND CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/CMSIS/Core_AArch64/Include
+    )
+else()
+    list(APPEND CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/cache/armv7-m7
+        ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/CMSIS/Core/Include
+    )
+endif()
 
 function(include_ifdef feature_toggle module)
   if(${${feature_toggle}})
@@ -40,9 +51,41 @@ zephyr_compile_definitions_ifdef(
   ENET_ENHANCEDBUFFERDESCRIPTOR_MODE
 )
 
+zephyr_compile_definitions_ifdef(
+  CONFIG_PTP_CLOCK_NXP_ENET
+  ENET_ENHANCEDBUFFERDESCRIPTOR_MODE
+)
+
 zephyr_library_compile_definitions_ifdef(
   CONFIG_HAS_MCUX_CACHE FSL_SDK_ENABLE_DRIVER_CACHE_CONTROL
 )
+
+# note: if FSL_IRQSTEER_ENABLE_MASTER_INT is not
+# defined then it will automatically be defined
+# and set to 1 via fsl_irqsteer.h
+zephyr_library_compile_definitions_ifdef(
+  CONFIG_NXP_IRQSTEER
+  FSL_IRQSTEER_ENABLE_MASTER_INT=0
+)
+
+zephyr_library_compile_definitions_ifdef(
+  CONFIG_DAI_NXP_SAI
+  MCUX_SDK_SAI_ALLOW_NULL_FIFO_WATERMARK=1
+)
+
+zephyr_library_compile_definitions_ifdef(
+  CONFIG_DAI_NXP_SAI
+  MCUX_SDK_SAI_DISABLE_IMPLICIT_CHAN_CONFIG=1
+)
+
+# Required by all SCFW-based SoCs
+if (CONFIG_SOC_MIMX8QM_A53 OR CONFIG_SOC_MIMX8QM_ADSP OR CONFIG_SOC_MIMX8QXP_ADSP)
+    list(APPEND CMAKE_MODULE_PATH
+        ${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/devices/${MCUX_DEVICE}/scfw_api
+    )
+    zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/devices/${MCUX_DEVICE}/scfw_api)
+    include(driver_scfw_api)
+endif()
 
 include(driver_common)
 
@@ -85,33 +128,36 @@ include_driver_ifdef(CONFIG_DMA_MCUX_LPC		lpc_dma		driver_lpc_dma)
 include_driver_ifdef(CONFIG_GPIO_MCUX_LPC		lpc_gpio        driver_lpc_gpio)
 include_driver_ifdef(CONFIG_NXP_PINT			pint    	driver_pint)
 include_driver_ifdef(CONFIG_NXP_PINT			inputmux	driver_inputmux)
-include_driver_ifdef(CONFIG_I2C_MCUX_FLEXCOMM		flexcomm	driver_flexcomm_i2c)
 include_driver_ifdef(CONFIG_I2C_MCUX_FLEXCOMM		flexcomm	driver_flexcomm)
-include_driver_ifdef(CONFIG_I2S_MCUX_FLEXCOMM		flexcomm	driver_flexcomm_i2s)
+include_driver_ifdef(CONFIG_I2C_MCUX_FLEXCOMM		flexcomm/i2c	driver_flexcomm_i2c)
 include_driver_ifdef(CONFIG_I2S_MCUX_FLEXCOMM		flexcomm	driver_flexcomm)
+include_driver_ifdef(CONFIG_I2S_MCUX_FLEXCOMM		flexcomm/i2s	driver_flexcomm_i2s)
 include_driver_ifdef(CONFIG_MCUX_OS_TIMER		ostimer		driver_ostimer)
 include_driver_ifdef(CONFIG_PWM_MCUX_SCTIMER		sctimer		driver_sctimer)
 include_driver_ifdef(CONFIG_SOC_FLASH_LPC		flashiap	driver_flashiap)
-include_driver_ifdef(CONFIG_SPI_MCUX_FLEXCOMM		flexcomm	driver_flexcomm_spi)
 include_driver_ifdef(CONFIG_SPI_MCUX_FLEXCOMM		flexcomm	driver_flexcomm)
-include_driver_ifdef(CONFIG_UART_MCUX_FLEXCOMM		flexcomm	driver_flexcomm_usart)
+include_driver_ifdef(CONFIG_SPI_MCUX_FLEXCOMM		flexcomm/spi	driver_flexcomm_spi)
 include_driver_ifdef(CONFIG_UART_MCUX_FLEXCOMM		flexcomm	driver_flexcomm)
+include_driver_ifdef(CONFIG_UART_MCUX_FLEXCOMM		flexcomm/usart	driver_flexcomm_usart)
 include_driver_ifdef(CONFIG_WDT_MCUX_WWDT		wwdt		driver_wwdt)
 include_driver_ifdef(CONFIG_ADC_MCUX_ADC12		adc12		driver_adc12)
 include_driver_ifdef(CONFIG_ADC_MCUX_ADC16		adc16		driver_adc16)
-include_driver_ifdef(CONFIG_IPM_IMX_REV2		mu		driver_mu)
+include_driver_ifdef(CONFIG_IPM_IMX			mu		driver_mu)
+include_driver_ifdef(CONFIG_MBOX_NXP_IMX_MU		mu		driver_mu)
 include_driver_ifdef(CONFIG_CAN_MCUX_FLEXCAN		flexcan		driver_flexcan)
 include_driver_ifdef(CONFIG_CAN_MCUX_FLEXCAN_FD		flexcan		driver_flexcan)
 include_driver_ifdef(CONFIG_COUNTER_MCUX_PIT		pit		driver_pit)
 include_driver_ifdef(CONFIG_COUNTER_MCUX_RTC		rtc		driver_rtc)
 include_driver_ifdef(CONFIG_DAC_MCUX_DAC		dac		driver_dac)
 include_driver_ifdef(CONFIG_DAC_MCUX_DAC32		dac32		driver_dac32)
-include_driver_ifdef(CONFIG_DMA_MCUX_EDMA		edma		driver_edma)
 include_driver_ifdef(CONFIG_DMA_MCUX_EDMA		dmamux		driver_dmamux)
+include_driver_ifdef(CONFIG_DMA_MCUX_EDMA_V3		dmamux		driver_dmamux)
+include_driver_ifdef(CONFIG_DMA_MCUX_EDMA		edma		driver_edma)
+include_driver_ifdef(CONFIG_DMA_MCUX_EDMA_V3		dma3		driver_dma3)
 include_driver_ifdef(CONFIG_ENTROPY_MCUX_RNGA		rnga		driver_rnga)
 include_driver_ifdef(CONFIG_ENTROPY_MCUX_TRNG		trng		driver_trng)
 include_driver_ifdef(CONFIG_ENTROPY_MCUX_CAAM		caam		driver_caam)
-include_driver_ifdef(CONFIG_ETH_MCUX			enet		driver_enet)
+include_driver_ifdef(CONFIG_ETH_NXP_ENET		enet		driver_enet)
 include_driver_ifdef(CONFIG_HAS_MCUX_SMC		smc		driver_smc)
 include_driver_ifdef(CONFIG_I2C_MCUX			i2c		driver_i2c)
 include_driver_ifdef(CONFIG_I2C_MCUX_LPI2C		lpi2c		driver_lpi2c)
@@ -137,8 +183,10 @@ include_driver_ifdef(CONFIG_DISPLAY_MCUX_DCNANO_LCDIF	lcdif		driver_lcdif)
 include_driver_ifdef(CONFIG_MCUX_PXP			pxp		driver_pxp)
 include_driver_ifdef(CONFIG_ETH_MCUX			enet		driver_enet)
 include_driver_ifdef(CONFIG_GPIO_MCUX_IGPIO		igpio		driver_igpio)
+include_driver_ifdef(CONFIG_GPIO_MCUX_RGPIO		rgpio		driver_rgpio)
 include_driver_ifdef(CONFIG_I2C_MCUX_LPI2C		lpi2c		driver_lpi2c)
 include_driver_ifdef(CONFIG_I2S_MCUX_SAI		sai		driver_sai)
+include_driver_ifdef(CONFIG_DAI_NXP_SAI			sai		driver_sai)
 include_driver_ifdef(CONFIG_MEMC_MCUX_FLEXSPI		flexspi		driver_flexspi)
 include_driver_ifdef(CONFIG_PWM_MCUX			pwm		driver_pwm)
 include_driver_ifdef(CONFIG_SPI_MCUX_LPSPI		lpspi		driver_lpspi)
@@ -154,6 +202,7 @@ include_driver_ifdef(CONFIG_HWINFO_MCUX_SRC		src		driver_src)
 include_driver_ifdef(CONFIG_HWINFO_MCUX_SIM		sim		driver_sim)
 include_driver_ifdef(CONFIG_HWINFO_MCUX_RCM		rcm		driver_rcm)
 include_driver_ifdef(CONFIG_IPM_MCUX			mailbox		driver_mailbox)
+include_driver_ifdef(CONFIG_MBOX_NXP_MAILBOX			mailbox		driver_mailbox)
 include_driver_ifdef(CONFIG_COUNTER_MCUX_SNVS		snvs_hp		driver_snvs_hp)
 include_driver_ifdef(CONFIG_COUNTER_MCUX_SNVS_SRTC	snvs_lp		driver_snvs_lp)
 include_driver_ifdef(CONFIG_COUNTER_MCUX_LPTMR		lptmr		driver_lptmr)
@@ -169,6 +218,11 @@ include_driver_ifdef(CONFIG_MCUX_TEMPSENSOR             tempsensor      driver_t
 include_driver_ifdef(CONFIG_MCUX_FLEXIO                 flexio          driver_flexio)
 include_driver_ifdef(CONFIG_QDEC_MCUX			enc		driver_enc)
 include_driver_ifdef(CONFIG_CRYPTO_MCUX_DCP			dcp		driver_dcp)
+include_driver_ifdef(CONFIG_DMA_MCUX_SMARTDMA		smartdma	driver_lpc_smartdma)
+include_driver_ifdef(CONFIG_DAC_MCUX_LPDAC			dac_1		driver_dac_1)
+include_driver_ifdef(CONFIG_NXP_IRQSTEER			irqsteer	driver_irqsteer)
+include_driver_ifdef(CONFIG_AUDIO_DMIC_MCUX		dmic		driver_dmic)
+include_driver_ifdef(CONFIG_DMA_NXP_EDMA	edma_rev2		driver_edma_rev2)
 
 if ((${MCUX_DEVICE} MATCHES "MIMXRT1[0-9][0-9][0-9]") AND (NOT (CONFIG_SOC_MIMXRT1166_CM4 OR CONFIG_SOC_MIMXRT1176_CM4 OR CONFIG_SOC_MIMXRT1165_CM4)))
   include_driver_ifdef(CONFIG_HAS_MCUX_CACHE		cache/armv7-m7	driver_cache_armv7_m7)
@@ -194,7 +248,7 @@ if("${CONFIG_SOC_FAMILY}" STREQUAL "nxp_kinetis")
   include(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/port/driver_port.cmake)
   zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/port)
 
-  if(${MCUX_DEVICE} MATCHES "MK(80|82|64|66|M34|M35|E14F|E16F|E18F)")
+  if(${MCUX_DEVICE} MATCHES "MK(80|82|64|66|M34|M35|E14F|E16F|E18F|22F12)")
     include(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/sysmpu/driver_sysmpu.cmake)
     zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/sysmpu)
   endif()
@@ -224,7 +278,7 @@ endif()
 if (${MCUX_DEVICE} MATCHES "LPC5")
   include(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/lpc_iocon/driver_lpc_iocon.cmake)
   zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/lpc_iocon)
-  if (${MCUX_DEVICE} MATCHES "LPC55S*3" AND DEFINED CONFIG_ADC_MCUX_LPADC)
+  if (${MCUX_DEVICE} MATCHES "LPC55S*3" AND (DEFINED CONFIG_ADC_MCUX_LPADC OR DEFINED CONFIG_DAC_MCUX_LPDAC))
     include(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/vref_1/driver_vref_1.cmake)
     zephyr_include_directories(${CMAKE_CURRENT_LIST_DIR}/mcux-sdk/drivers/vref_1)
   endif()

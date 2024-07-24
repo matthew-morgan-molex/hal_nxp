@@ -1,11 +1,16 @@
 /*
- * Copyright 2022 NXP
+ * Copyright 2021-2023 NXP
  *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 /**
-*   @file
+*   @file    SchM_Can_43_CANEXCEL.c
+*   @version 1.0.0
+*
+*   @brief   AUTOSAR Rte - module implementation
+*   @details This module implements stubs for the AUTOSAR Rte
+*            This file contains sample code only. It is not part of the production code deliverables.
 *
 *   @addtogroup RTE_MODULE
 *   @{
@@ -35,8 +40,8 @@ extern "C"{
 #define SCHM_CAN_43_CANEXCEL_AR_RELEASE_MAJOR_VERSION_C     4
 #define SCHM_CAN_43_CANEXCEL_AR_RELEASE_MINOR_VERSION_C     7
 #define SCHM_CAN_43_CANEXCEL_AR_RELEASE_REVISION_VERSION_C  0
-#define SCHM_CAN_43_CANEXCEL_SW_MAJOR_VERSION_C             0
-#define SCHM_CAN_43_CANEXCEL_SW_MINOR_VERSION_C             9
+#define SCHM_CAN_43_CANEXCEL_SW_MAJOR_VERSION_C             1
+#define SCHM_CAN_43_CANEXCEL_SW_MINOR_VERSION_C             0
 #define SCHM_CAN_43_CANEXCEL_SW_PATCH_VERSION_C             0
 
 /*==================================================================================================

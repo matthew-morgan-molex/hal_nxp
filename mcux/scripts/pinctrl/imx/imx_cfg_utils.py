@@ -11,9 +11,10 @@ import re
 import os
 import pathlib
 import logging
+import __main__
 
 # MEX file has a default namespace, map it here
-NAMESPACES = {'mex' : 'http://mcuxpresso.nxp.com/XSD/mex_configuration_13'}
+NAMESPACES = {'mex' : 'http://mcuxpresso.nxp.com/XSD/mex_configuration_14'}
 
 class Peripheral:
     """
@@ -163,6 +164,12 @@ class Register:
         """
         return self._bit_field_map[bit_field][value]['description']
 
+    def get_bit_fields(self):
+        """
+        Get list of all bit fields present in register
+        """
+        return self._bit_field_map.keys()
+
 
 class TemplatedRegister(Register):
     """
@@ -235,7 +242,8 @@ class SignalPin:
                 reg_name = match.group(1)
                 match = re.match(r'SW_PAD_CTL_PAD_(\w+)', reg_name)
                 pad_name = match.group(1)
-                cfg_addr = peripheral_map[periph_name].get_reg_addr(reg_name)
+                cfg_reg = peripheral_map[periph_name].get_register(reg_name)
+                cfg_addr = peripheral_map[periph_name].get_base() + cfg_reg.get_offset()
                 # We have found the pad configuration address. Break.
                 break
         for connections in pin.findall('connections'):
@@ -246,7 +254,20 @@ class SignalPin:
                 name = f"{periph_name}_{pad_name}_{name_part}"
             else:
                 name = f"{periph_name}_{pad_name}_{signal.upper()}_{name_part}"
-            iomux_opt = IOMUXOption(connection, peripheral_map, cfg_addr, name)
+            # Determine the configuration register type. This is needed for
+            # iMX RT11xx series devices
+            cfg_fields = cfg_reg.get_bit_fields()
+            if 'PDRV' in cfg_fields:
+                pin_type = 'pdrv'
+            elif 'ODE_LPSR' in cfg_fields:
+                pin_type = 'lpsr'
+            elif 'ODE_SNVS' in cfg_fields:
+                pin_type = 'snvs'
+            elif 'PUE' in cfg_fields:
+                pin_type = 'pue'
+            else:
+                pin_type = 'unknown'
+            iomux_opt = IOMUXOption(connection, peripheral_map, cfg_addr, name, pin_type)
             peripheral = connection.find('peripheral_signal_ref').attrib['peripheral']
             channel = connection.find('peripheral_signal_ref').attrib.get('channel')
             if channel is not None:
@@ -364,15 +385,14 @@ class IOMUXOption:
     """
     Internal class representing an IOMUXC option
     """
-    def __init__(self, connection, peripheral_map, cfg_reg, name):
+    def __init__(self, connection, peripheral_map, cfg_reg, name, pin_type):
         """
         Initializes an IOMUXC option object
         @param connection: connection XML object from signal_configuration.xml
         @param peripheral_map: mapping of peripheral names to peripheral objects
         @param cfg_reg: configuration register for this IOMUXC option
-        @param props: dictionary of properties and their values to apply when
-            selecting this option
         @param name: allows caller to override iomuxc name, if it is known
+        @param pin_type: sets pin type value for config register (for RT11xx)
         """
         self._mux = 0
         self._mux_val = 0
@@ -383,6 +403,7 @@ class IOMUXOption:
         self._has_gpr = False
         self._extended_config = []
         self._name = name
+        self._type = pin_type
         # Check if this connection controls a GPIO
         peripheral = connection.find('peripheral_signal_ref').attrib.get('peripheral')
         channel = connection.find('peripheral_signal_ref').attrib.get('channel')
@@ -545,6 +566,13 @@ class IOMUXOption:
         """
         return self._extended_config
 
+    def get_cfg_type(self):
+        """
+        Get the configuration type for this option. Currently only relevant
+        for RT11xx SOCs.
+        """
+        return self._type
+
 class PinGroup:
     """
     Internal class representing pin group
@@ -559,7 +587,8 @@ class PinGroup:
         description = function.find('mex:description', NAMESPACES)
         pins = function.find('mex:pins', NAMESPACES)
         if description is not None and description.text is not None:
-            self._description = description.text
+            # Replace <br> html tag with newline
+            self._description = description.text.replace("&lt;br/&gt;", "\n")
         else:
             self._description = ""
         # Build dictionary mapping pin properties to pins. This allows us to
@@ -725,8 +754,12 @@ class PinGroup:
         zephyr_props = []
         prop_mapping = {
             'MHZ_50': '50-mhz',
+            'MHZ_100_01': '100-mhz',
+            # On some iMX RT10xx SOCs, 150 MHz is mapped to this value. However,
+            # this is not consistent for all iMX RT10xx supported by
+            # config tools. Therefore, we just force both MHZ_100_01 and
+            # MHZ_100 to 100-mhz.
             'MHZ_100': '100-mhz',
-            'MHZ_150': '150-mhz',
             'MHZ_200': '200-mhz',
             'R0': 'r0',
             'R0_2': 'r0-2',
@@ -895,7 +928,7 @@ class NXPSdkUtil:
         with open(outputfile, "w", encoding='utf8') as gpio_dsti:
             # Write header
             gpio_dsti.write(f"/*\n"
-                f" * File created by {os.path.basename(__file__)}\n"
+                f" * File created by {os.path.basename(__main__.__file__)}\n"
                 " * not intended for direct usage. Hand edit these DTS\n"
                 " * nodes as needed to integrate them into Zephyr.\n"
                 " */\n\n")
@@ -969,7 +1002,7 @@ class NXPSdkUtil:
             header = (f"/*\n"
             f" * {self._copyright}\n"
             f" *\n"
-            f" * Note: File generated by {os.path.basename(__file__)}\n"
+            f" * Note: File generated by {os.path.basename(__main__.__file__)}\n"
             f" * from configuration data for {self._soc_sku}\n"
             " */\n\n")
             soc_dtsi.write(header)
@@ -1004,21 +1037,7 @@ class NXPSdkUtil:
                     if soc_rt11xx:
                         # RT11xx pins can have multiple register layouts, so we need to
                         # record the type of pin here
-                        if 'GPIO_SD' in iomuxc_name:
-                            reg_type = 'pin-pdrv' # PDRV and PULL fields
-                        elif 'GPIO_AD' in iomuxc_name:
-                            reg_type = 'pin-pue' # PUS and PUE fields
-                        elif 'GPIO_EMC' in iomuxc_name:
-                            reg_type = 'pin-pdrv' # PDRV and PULL fields
-                        elif 'GPIO_LPSR' in iomuxc_name:
-                            reg_type = 'pin-lpsr' # PUS and PUE, with shifted ODE
-                        elif 'SNVS' in iomuxc_name:
-                            reg_type = 'pin-snvs' # PUS and PUE, with double shifted ODE
-                        elif 'GPIO_DISP' in iomuxc_name:
-                            reg_type = 'pin-pdrv' # PDRV and PULL fields
-                        else:
-                            logging.warning("Warning: unmatched signal pin name %s", iomuxc_name)
-                            reg_type = ''
+                        reg_type = f"pin-{iomux_opt.get_cfg_type()}"
                         dts_node += f"\t\t{reg_type};\n"
                     if iomux_opt.has_gpr():
                         gpr_reg = iomux_opt.gpr_reg()
@@ -1045,7 +1064,7 @@ class NXPSdkUtil:
         header = (f"/*\n"
         f" * {self._copyright}\n"
         f" *\n"
-        f" * Note: File generated by {os.path.basename(__file__)}\n"
+        f" * Note: File generated by {os.path.basename(__main__.__file__)}\n"
         f" * from {os.path.basename(mexfile)}\n"
         " */\n\n")
         with open(outputfile, "w", encoding="utf8") as dts_file:
@@ -1057,12 +1076,19 @@ class NXPSdkUtil:
                 dts_file.write("#include <nxp/nxp_imx/"
                     f"{self.get_part_num().lower()}-pinctrl.dtsi>\n\n")
             dts_file.write("&pinctrl {\n")
-            for pin_group in sorted(pin_groups.values()):
+            for pin_group in pin_groups.values():
                 pin_props = pin_group.get_pin_props()
                 description = pin_group.get_description()
                 # if a description is present, write it
                 if description != "":
-                    dts_file.write(f"\t/* {description} */\n")
+                    description_lines = description.split("\n")
+                    if len(description_lines) == 1:
+                        dts_file.write(f"\t/* {description} */\n")
+                    else:
+                        dts_file.write("\t/*\n")
+                        for line in description_lines:
+                            dts_file.write(f"\t * {line}\n")
+                        dts_file.write("\t */\n")
                 # Write pin group name
                 name = pin_group.get_name().lower()
                 dts_file.write(f"\t{name}: {name} {{\n")
@@ -1203,8 +1229,7 @@ def get_processor_name(mexfile):
         processor = config_tree.getroot().find('mex:common/mex:processor',
             NAMESPACES)
         if processor is None:
-            raise RuntimeError("Cannot locate processor name in MEX file. "
-                "Are you using v12 of the MCUXpresso configuration tools?")
+            raise RuntimeError("Cannot locate processor name in MEX file.")
         return processor.text
     except ET.ParseError:
         logging.error("Malformed XML tree %s", mexfile)

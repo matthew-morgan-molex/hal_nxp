@@ -1,5 +1,5 @@
 //*****************************************************************************
-// MIMXRT1166_cm7 startup code for use with MCUXpresso IDE
+// MIMXRT1165_cm7 startup code for use with MCUXpresso IDE
 //
 // Version : 090922
 //*****************************************************************************
@@ -132,10 +132,10 @@ WEAK void FLEXRAM_IRQHandler(void);
 WEAK void KPP_IRQHandler(void);
 WEAK void Reserved68_IRQHandler(void);
 WEAK void GPR_IRQ_IRQHandler(void);
-WEAK void eLCDIF_IRQHandler(void);
+WEAK void Reserved70_IRQHandler(void);
 WEAK void LCDIFv2_IRQHandler(void);
-WEAK void CSI_IRQHandler(void);
-WEAK void PXP_IRQHandler(void);
+WEAK void Reserved72_IRQHandler(void);
+WEAK void Reserved73_IRQHandler(void);
 WEAK void MIPI_CSI_IRQHandler(void);
 WEAK void MIPI_DSI_IRQHandler(void);
 WEAK void GPU2D_IRQHandler(void);
@@ -355,10 +355,10 @@ void FLEXRAM_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
 void KPP_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
 void Reserved68_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
 void GPR_IRQ_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
-void eLCDIF_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
+void Reserved70_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
 void LCDIFv2_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
-void CSI_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
-void PXP_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
+void Reserved72_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
+void Reserved73_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
 void MIPI_CSI_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
 void MIPI_DSI_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
 void GPU2D_DriverIRQHandler(void) ALIAS(IntDefaultHandler);
@@ -564,7 +564,7 @@ void (* const g_pfnVectors[])(void) = {
     PendSV_Handler,                    // PendSV Handler
     SysTick_Handler,                   // SysTick Handler
 
-    // Chip Level - MIMXRT1166_cm7
+    // Chip Level - MIMXRT1165_cm7
     DMA0_DMA16_IRQHandler,               // 16 : DMA channel 0/16 transfer complete
     DMA1_DMA17_IRQHandler,               // 17 : DMA channel 1/17 transfer complete
     DMA2_DMA18_IRQHandler,               // 18 : DMA channel 2/18 transfer complete
@@ -619,10 +619,10 @@ void (* const g_pfnVectors[])(void) = {
     KPP_IRQHandler,                      // 67 : Keypad nterrupt
     Reserved68_IRQHandler,               // 68 : Reserved interrupt
     GPR_IRQ_IRQHandler,                  // 69 : GPR interrupt
-    eLCDIF_IRQHandler,                   // 70 : eLCDIF interrupt
+    Reserved70_IRQHandler,               // 70 : Reserved interrupt
     LCDIFv2_IRQHandler,                  // 71 : LCDIFv2 interrupt
-    CSI_IRQHandler,                      // 72 : CSI interrupt
-    PXP_IRQHandler,                      // 73 : PXP interrupt
+    Reserved72_IRQHandler,               // 72 : Reserved interrupt
+    Reserved73_IRQHandler,               // 73 : Reserved interrupt
     MIPI_CSI_IRQHandler,                 // 74 : MIPI_CSI interrupt
     MIPI_DSI_IRQHandler,                 // 75 : MIPI_DSI interrupt
     GPU2D_IRQHandler,                    // 76 : GPU2D interrupt
@@ -1191,20 +1191,20 @@ WEAK void GPR_IRQ_IRQHandler(void)
 {   GPR_IRQ_DriverIRQHandler();
 }
 
-WEAK void eLCDIF_IRQHandler(void)
-{   eLCDIF_DriverIRQHandler();
+WEAK void Reserved70_IRQHandler(void)
+{   Reserved70_DriverIRQHandler();
 }
 
 WEAK void LCDIFv2_IRQHandler(void)
 {   LCDIFv2_DriverIRQHandler();
 }
 
-WEAK void CSI_IRQHandler(void)
-{   CSI_DriverIRQHandler();
+WEAK void Reserved72_IRQHandler(void)
+{   Reserved72_DriverIRQHandler();
 }
 
-WEAK void PXP_IRQHandler(void)
-{   PXP_DriverIRQHandler();
+WEAK void Reserved73_IRQHandler(void)
+{   Reserved73_DriverIRQHandler();
 }
 
 WEAK void MIPI_CSI_IRQHandler(void)
