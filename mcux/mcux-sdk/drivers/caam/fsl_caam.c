@@ -3056,7 +3056,7 @@ static status_t caam_hash_schedule_input_data(CAAM_Type *base,
     {
         descriptor[11] = ADD_OFFSET(descriptor[13]); /* always halt with status 0x0 (normal) */
     }
-
+    L1CACHE_CleanInvalidateDCache();
     return caam_in_job_ring_add(base, handle->jobRing, &descriptor[0]);
 }
 
