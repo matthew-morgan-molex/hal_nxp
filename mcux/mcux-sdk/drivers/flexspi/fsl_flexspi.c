@@ -881,6 +881,9 @@ status_t FLEXSPI_TransferBlocking(FLEXSPI_Type *base, flexspi_transfer_t *xfer)
     {
     }
 
+    // MWM: If this is not here we get errors writing to XIP flash
+    while (!FLEXSPI_GetBusIdleStatus(base));
+
     /* Unless there is an error status already set, capture the latest one */
     if (result == kStatus_Success)
     {
